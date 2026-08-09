@@ -1,0 +1,482 @@
+// Train page + exercise logger styles.
+
+.routineChips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.routineChip {
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 14.5px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+  }
+}
+
+.routineChipOn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+// ── Exercise card ───────────────────────────────────────────────────────────
+
+.exercise {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.exerciseHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.exerciseTitle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text);
+  min-width: 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    border-radius: 4px;
+  }
+}
+
+.exerciseName {
+  font-weight: 600;
+  font-size: 15.5px;
+}
+
+.orderBadge {
+  font-size: 13px;
+}
+
+.setupNotes {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.headerActions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.progressLink {
+  text-decoration: none;
+  color: var(--accent-deep);
+  font-size: 16px;
+  padding: 6px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.moveBtn {
+  border: none;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  width: 34px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 15px;
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.lastLine {
+  background: var(--surface-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.lastLabel {
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
+.copyHint {
+  float: right;
+  color: var(--accent-deep);
+  font-weight: 600;
+  padding-left: 8px;
+}
+
+// ── Set rows ────────────────────────────────────────────────────────────────
+
+.setsHeader,
+.setRow {
+  display: grid;
+  grid-template-columns: 62px 62px auto auto 28px;
+  gap: 6px;
+  align-items: center;
+}
+
+.setsHeader {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+
+  span:nth-child(3),
+  span:nth-child(4) {
+    text-align: center;
+  }
+}
+
+.setRow {
+  input {
+    padding: 8px 8px;
+    min-height: 42px;
+    font-size: 15.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+}
+
+.rirChips,
+.flagChips {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+}
+
+.chip {
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-faint);
+  min-width: 26px;
+  height: 30px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 4px;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.chipOn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.chipPain {
+  background: var(--bad-bg);
+  border-color: var(--bad);
+}
+
+.removeSet {
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px 2px;
+
+  &:hover {
+    color: var(--bad);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.exerciseActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.smallBtn {
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.variation {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  min-height: 36px;
+  font-size: 13px;
+}
+
+.quickRow {
+  display: flex;
+  gap: 8px;
+
+  input {
+    flex: 1;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.quickWarnings {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--warn);
+}
+
+.collapsedSummary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+// ── Cardio ──────────────────────────────────────────────────────────────────
+
+.cardioCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  h2 {
+    font-size: 16px;
+  }
+}
+
+.cardioRow {
+  display: flex;
+  gap: 12px;
+
+  > * {
+    flex: 1;
+  }
+}
+
+.cardioField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  span {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+}
+
+.cardioList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+}
+
+// ── Recent sessions / manager ───────────────────────────────────────────────
+
+.recentList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recentRow {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  border: 1px solid var(--border);
+  text-align: left;
+  cursor: pointer;
+  padding: 12px 14px;
+
+  &:hover {
+    background: var(--surface-2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.recentDate {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.recentRoutine {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-deep);
+  white-space: nowrap;
+}
+
+.recentSummary {
+  font-size: 13px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manageToggle {
+  border: none;
+  background: none;
+  color: var(--accent-deep);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px;
+  align-self: flex-start;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    border-radius: 4px;
+  }
+}
+
+.manager {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.managerRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.managerInfo {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  min-width: 220px;
+
+  input:first-child {
+    flex: 1.2;
+  }
+
+  input:last-child {
+    flex: 1;
+    font-size: 13px;
+  }
+}
+
+.managerActions {
+  display: flex;
+  gap: 4px;
+}
+
+.managerAdd {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+
+  input[type='text'] {
+    flex: 1;
+  }
+}
+
+.bwLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+
+  input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent-strong);
+  }
+}
+
+@media (max-width: 480px) {
+  .setsHeader,
+  .setRow {
+    grid-template-columns: 56px 56px auto auto 24px;
+    gap: 4px;
+  }
+}

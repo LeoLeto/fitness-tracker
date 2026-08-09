@@ -1,0 +1,144 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.event {
+  display: flex;
+  gap: 10px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.eventIcon {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.eventTitle {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.eventDate {
+  font-weight: 500;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.eventDetail {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.bands {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  h3 {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+}
+
+.band {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bandHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bandKind {
+  font-weight: 700;
+  font-size: 13px;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.kindDeficit {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.kindSurplus {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.kindMaintenance {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.bandRange {
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.bandTrend {
+  font-size: 13.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.strengthRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.strengthLabel {
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+
+.strengthChip {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.down {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.up {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.footnote {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-faint);
+}

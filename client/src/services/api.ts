@@ -1,0 +1,148 @@
+import {
+  AnalyticsSummary,
+  DailyEntry,
+  Exercise,
+  ExerciseSessionPoint,
+  ParsedSession,
+  Profile,
+  TimelinePayload,
+  WeeklySummary,
+  Workout,
+} from '../types';
+
+const BASE = '/api';
+
+export class ApiError extends Error {
+  status: number;
+  details?: string[];
+  constructor(status: number, message: string, details?: string[]) {
+    super(message);
+    this.status = status;
+    this.details = details;
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
+    ...init,
+  });
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    let details: string[] | undefined;
+    try {
+      const body = (await res.json()) as { error?: string; details?: string[] };
+      if (body.error) message = body.error;
+      details = body.details;
+    } catch {
+      // non-JSON error body — keep the generic message
+    }
+    throw new ApiError(res.status, message, details);
+  }
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
+}
+
+function rangeQuery(from?: string, to?: string): string {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
+export const api = {
+  getProfile: () => request<Profile>('/profile'),
+  updateProfile: (patch: Partial<Profile>) =>
+    request<Profile>('/profile', { method: 'PUT', body: JSON.stringify(patch) }),
+
+  listEntries: (from?: string, to?: string) =>
+    request<DailyEntry[]>(`/entries${rangeQuery(from, to)}`),
+  getEntry: async (date: string): Promise<DailyEntry | null> => {
+    try {
+      return await request<DailyEntry>(`/entries/${date}`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return null;
+      throw err;
+    }
+  },
+  saveEntry: (entry: DailyEntry) =>
+    request<DailyEntry>('/entries', { method: 'POST', body: JSON.stringify(entry) }),
+  deleteEntry: (date: string) =>
+    request<void>(`/entries/${date}`, { method: 'DELETE' }),
+
+  getAnalytics: (from?: string, to?: string) =>
+    request<AnalyticsSummary>(`/analytics${rangeQuery(from, to)}`),
+  getWeekly: () => request<WeeklySummary[]>('/analytics/weekly'),
+  getTimeline: (from?: string, to?: string) =>
+    request<TimelinePayload>(`/analytics/timeline${rangeQuery(from, to)}`),
+  getStrengthSeries: (exercise: string) =>
+    request<{ exercise: string; points: ExerciseSessionPoint[] }>(
+      `/analytics/strength?exercise=${encodeURIComponent(exercise)}`
+    ),
+
+  listExercises: (routine?: string) =>
+    request<Exercise[]>(`/exercises${routine ? `?routine=${encodeURIComponent(routine)}` : ''}`),
+  createExercise: (data: Partial<Exercise>) =>
+    request<Exercise>('/exercises', { method: 'POST', body: JSON.stringify(data) }),
+  updateExercise: (id: string, data: Partial<Exercise>) =>
+    request<Exercise>(`/exercises/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteExercise: (id: string) => request<void>(`/exercises/${id}`, { method: 'DELETE' }),
+
+  listWorkouts: (opts: { from?: string; to?: string; routine?: string; type?: string } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.from) params.set('from', opts.from);
+    if (opts.to) params.set('to', opts.to);
+    if (opts.routine) params.set('routine', opts.routine);
+    if (opts.type) params.set('type', opts.type);
+    const qs = params.toString();
+    return request<Workout[]>(`/workouts${qs ? `?${qs}` : ''}`);
+  },
+  getLastWorkout: async (routine: string, before?: string): Promise<Workout | null> => {
+    try {
+      const params = new URLSearchParams({ routine });
+      if (before) params.set('before', before);
+      return await request<Workout>(`/workouts/last?${params.toString()}`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return null;
+      throw err;
+    }
+  },
+  saveWorkout: (workout: Omit<Workout, 'id'> & { id?: string }) =>
+    workout.id
+      ? request<Workout>(`/workouts/${workout.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(workout),
+        })
+      : request<Workout>('/workouts', { method: 'POST', body: JSON.stringify(workout) }),
+  deleteWorkout: (id: string) => request<void>(`/workouts/${id}`, { method: 'DELETE' }),
+  parseSetText: (text: string, isBodyweight: boolean) =>
+    request<ParsedSession>('/workouts/parse', {
+      method: 'POST',
+      body: JSON.stringify({ text, isBodyweight }),
+    }),
+
+  /** Markdown / prompt exports as plain text (for clipboard copy). */
+  getExportText: async (opts: {
+    from?: string;
+    to?: string;
+    prompt?: boolean;
+    includeWorkouts?: boolean;
+  }) => {
+    const params = new URLSearchParams();
+    if (opts.from) params.set('from', opts.from);
+    if (opts.to) params.set('to', opts.to);
+    if (opts.prompt) params.set('prompt', '1');
+    if (opts.includeWorkouts === false) params.set('workouts', '0');
+    const res = await fetch(`${BASE}/export/chatgpt?${params.toString()}`);
+    if (!res.ok) throw new ApiError(res.status, 'Export failed');
+    return res.text();
+  },
+
+  /** Download URLs for CSV / JSON exports. */
+  exportUrl: (
+    kind: 'csv' | 'json' | 'workouts.csv' | 'workouts.json',
+    from?: string,
+    to?: string
+  ) => `${BASE}/export/${kind}${rangeQuery(from, to)}`,
+};

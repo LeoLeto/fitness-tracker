@@ -1,0 +1,121 @@
+.dateCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.dayArrow {
+  border: none;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.dateCenter {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dateInput {
+  max-width: 190px;
+  text-align: center;
+  font-weight: 600;
+  min-height: 44px;
+}
+
+.dateHuman {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.editingBadge {
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionHeading {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.details {
+  summary {
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-faint);
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-ring);
+      border-radius: 4px;
+    }
+  }
+}
+
+.detailsBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.notesField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  span {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 56px;
+  }
+}
+
+@media (min-width: 640px) {
+  .detailsBody {
+    flex-direction: row;
+    flex-wrap: wrap;
+
+    > * {
+      flex: 1;
+      min-width: 200px;
+    }
+  }
+}

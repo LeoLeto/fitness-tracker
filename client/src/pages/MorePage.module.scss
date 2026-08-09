@@ -1,0 +1,45 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  padding: 16px;
+
+  &:hover {
+    background: var(--surface-2);
+  }
+}
+
+.icon {
+  font-size: 20px;
+  color: var(--accent-deep);
+  width: 28px;
+  text-align: center;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.label {
+  font-weight: 600;
+  font-size: 15.5px;
+}
+
+.desc {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.chevron {
+  font-size: 22px;
+  color: var(--text-faint);
+}

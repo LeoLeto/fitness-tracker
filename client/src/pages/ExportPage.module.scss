@@ -1,0 +1,43 @@
+.rangeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+
+  a {
+    text-decoration: none;
+  }
+}
+
+.previewCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  h2 {
+    font-size: 16px;
+  }
+}
+
+.preview {
+  margin: 0;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 420px;
+  white-space: pre;
+}
+
+@media (min-width: 640px) {
+  .actions {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
