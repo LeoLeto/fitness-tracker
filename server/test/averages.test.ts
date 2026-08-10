@@ -18,6 +18,7 @@ function entry(date: string, fields: Partial<DailyEntry> = {}): DailyEntry {
     trainingType: null,
     trainingDurationMin: null,
     notes: null,
+    meals: [],
     ...fields,
   };
 }

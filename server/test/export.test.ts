@@ -18,6 +18,7 @@ function entry(date: string, fields: Partial<DailyEntry>): DailyEntry {
     trainingType: null,
     trainingDurationMin: null,
     notes: null,
+    meals: [],
     ...fields,
   };
 }
@@ -42,12 +43,12 @@ describe('CSV export', () => {
     const csv = buildCsv(entries);
     const lines = csv.trim().split('\r\n');
     expect(lines[0]).toBe(
-      'date,weight_kg,calories,protein_g,carbs_g,fat_g,bowel_movement,weighed_time,before_food,after_bowel_movement,trained,training_type,training_duration_min,notes'
+      'date,weight_kg,calories,protein_g,carbs_g,fat_g,bowel_movement,weighed_time,before_food,after_bowel_movement,trained,training_type,training_duration_min,notes,meal_count'
     );
-    expect(lines[1]).toBe('2026-08-03,63.7,2140,145,250,65,yes,,,,yes,,,Normal day');
-    expect(lines[2]).toBe('2026-08-04,63.9,2210,,,,,,,,,,,');
+    expect(lines[1]).toBe('2026-08-03,63.7,2140,145,250,65,yes,,,,yes,,,Normal day,');
+    expect(lines[2]).toBe('2026-08-04,63.9,2210,,,,,,,,,,,,');
     // Missing values stay empty — no zeros, no Mongo IDs anywhere.
-    expect(lines[3]).toBe('2026-08-05,,,,,,,,,,,,,');
+    expect(lines[3]).toBe('2026-08-05,,,,,,,,,,,,,,');
     expect(csv).not.toContain('_id');
   });
 

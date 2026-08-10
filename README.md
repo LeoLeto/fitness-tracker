@@ -67,7 +67,10 @@ npm test
 
 Covers: moving averages, date-aware regression, the maintenance-calorie
 formula, missing-value handling (never averaged as zero), duplicate-date
-upserts, and insufficient-data reporting.
+upserts, insufficient-data reporting, meal accumulation and partial-macro
+handling, partial-update (`PATCH`) semantics, the workout notation parser
+(including the `*`/`?`/🚨/⬆️⬇️ subtleties), strength metrics, and the
+insight rules.
 
 ### 6. Production build & deploy
 
@@ -98,13 +101,14 @@ in exports.
 | Page | What it does |
 |---|---|
 | **Dashboard** | Current weight, 7/14/28-day averages (with measurement counts), weight trend vs target, calorie & macro averages, this week's training, weight/calorie/combined charts, quick date ranges (7d…1y, custom). |
-| **Log** | Fast daily entry — date (defaults to today), weight, calories, protein/carbs/fat, training, bowel movement, optional weigh-in conditions, notes. Saving the same date again **updates** that day (no duplicates). Last-used values appear as placeholder hints only — they are never saved unless typed. |
+| **Weigh-in** | Body weight plus the previous weigh-in and day-over-day delta, with the optional weigh-in conditions (time weighed + "Now" button, before food, after bowel movement, bowel movement) always expanded — no taps to reach them. Also day notes and a "trained today" marker. |
+| **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), optional time, calories and optional protein/carbs/fat. The running day total is shown against your calorie target with the amount remaining. A day can also be logged as one total, and an existing total can be split into meals without losing the number. |
 | **Train** | Workout logger: pick a routine (Push/Pull/Legs/Abs/Cardio), log sets with one-tap RIR (0–4) and flag chips, copy the last session with one tap, reorder exercises with ↑↓ (order swaps are recorded automatically), per-exercise "quick text" entry in your own notation, cardio sessions (type + minutes), and an exercise manager (setup notes, bodyweight flag, ordering, archive). |
 | **Exercise progress** | Per-exercise chart of estimated 1RM (or best reps for bodyweight work) over real calendar time, with pain/form-flagged sessions marked, plus a session table. |
-| **History** | All entries, tap to edit, delete. |
+| **History** | All entries — tap a day to edit its weigh-in, tap the calorie figure to edit its food, or delete the day. |
 | **Weekly Review** | Monday–Sunday summaries: average weight, weigh-ins, calories, protein, within-week trend, change vs previous week, training days, sessions per routine, cardio minutes, notes. |
 | **Analysis** | **Body & Training timeline** (three date-aligned panels: weight with energy-balance bands + event markers, strength index per routine, weekly sessions stacked by routine + cardio), **Insights** (detected events and periods), maintenance-calorie estimate, suggested intake, rules-based recommendation, and a manually controlled "current calorie target". |
-| **Export** | CSV / JSON downloads for daily data **and** workouts, one-tap "Copy for ChatGPT" (Markdown summary + tables + workout log) and "Copy Data + Analysis Prompt". |
+| **Export** | CSV / JSON downloads for daily data, meals **and** workouts, one-tap "Copy for ChatGPT" (Markdown summary + tables + workout log) and "Copy Data + Analysis Prompt". |
 | **Settings** | Profile (sex, age, height, goal, target kg/week, training, cardio, notes), calorie target, theme (auto/light/dark). Stored in the database — nothing is hard-coded into calculations. |
 
 ### Workout set notation
@@ -158,6 +162,27 @@ e1RM = weight × (1 + (reps + RIR) / 30)
 ```
 
 Bodyweight exercises are tracked by the best set's `reps + RIR` instead.
+
+### Navigation
+
+On mobile the bottom tab bar is the entire navigation — Home, Weigh, Food,
+Train, Stats, More — with no header or branding taking up vertical space.
+History, Weekly Review, Export and Settings live under **More**. On desktop
+(≥820px) a single top nav row replaces the tabs.
+
+### How meals and day totals relate
+
+A day's calories and macros are a **single source of truth**: whenever a day
+has meals, its totals are derived from them server-side, so every average,
+trend and export stays consistent no matter where the data was entered.
+Macros sum only over the meals that recorded them and the UI says so
+(e.g. "F 18 g · 1/2 meals") rather than silently under-reporting; a macro no
+meal recorded stays missing instead of becoming zero. Days logged before
+meals existed (or entered as one number) keep working exactly as they did.
+
+Because the weigh-in and food screens are separate, each one saves only its
+own fields via `PATCH /api/entries/:date` — logging a weigh-in never touches
+that day's meals, and vice versa.
 
 ### Data principles
 
@@ -233,9 +258,11 @@ On the **Export** page:
 - **Copy for ChatGPT** — the Markdown summary + table only.
 - **Download CSV** — columns: `date, weight_kg, calories, protein_g, carbs_g,
   fat_g, bowel_movement, weighed_time, before_food, after_bowel_movement,
-  trained, training_type, training_duration_min, notes` (ISO dates, one
-  decimal for weight, no MongoDB internals).
-- **Download JSON** — the same raw records as JSON.
+  trained, training_type, training_duration_min, notes, meal_count` (ISO
+  dates, one decimal for weight, no MongoDB internals).
+- **Download JSON** — the same raw records as JSON, meals included.
+- **Meals CSV** — one row per logged meal: `date, meal_number, label, time,
+  calories, protein_g, carbs_g, fat_g, notes`.
 
 All exports default to the full history; tick "Limit to a date range" to
 export a period.
@@ -250,7 +277,7 @@ REST endpoints (all under `/api`):
 GET    /api/profile              PUT    /api/profile
 GET    /api/entries?from&to      POST   /api/entries
 GET    /api/entries/:date        PUT    /api/entries/:date
-DELETE /api/entries/:date
+PATCH  /api/entries/:date        DELETE /api/entries/:date
 GET    /api/exercises?routine    POST   /api/exercises
 PUT    /api/exercises/:id        DELETE /api/exercises/:id
 GET    /api/workouts?from&to&routine&type
@@ -263,13 +290,16 @@ GET    /api/analytics/strength?exercise
 GET    /api/analytics/timeline?from&to
 GET    /api/export/csv?from&to
 GET    /api/export/json?from&to
+GET    /api/export/meals.csv?from&to
 GET    /api/export/workouts.csv?from&to
 GET    /api/export/workouts.json?from&to
 GET    /api/export/chatgpt?from&to&prompt=1&workouts=0
 ```
 
-Strength workouts upsert by (date, routine) — saving the same routine on the
-same day updates that session.
+`POST`/`PUT` on an entry replace the whole day (used by the importer); `PATCH`
+updates only the fields you send, which is how the Weigh and Food screens
+avoid overwriting each other. Strength workouts upsert by (date, routine) —
+saving the same routine on the same day updates that session.
 
 `POST /api/entries` and `PUT /api/entries/:date` both upsert by date (unique
 index on `date`), so saving a date twice updates the existing record. All
@@ -281,7 +311,7 @@ input is validated server-side (dates, numeric ranges, string lengths).
 ├── client/               React app (Vite)
 │   └── src/
 │       ├── components/   layout, fields, charts, shared UI
-│       ├── pages/        Dashboard, Log, History, Weekly, Analysis, Export, Settings
+│       ├── pages/        Dashboard, Weigh, Food, Train, History, Weekly, Analysis, Export, Settings
 │       ├── hooks/        useApi, useTheme
 │       ├── services/     API client
 │       ├── types/        API types
@@ -294,7 +324,7 @@ input is validated server-side (dates, numeric ranges, string lengths).
 │       ├── analytics/    trend, averages, maintenance, recommendation, weekly
 │       ├── workouts/     notation parser, strength metrics, insights, timeline
 │       ├── scripts/      importRaw (historical notes importer)
-│       ├── services/     entry upsert, export builders
+│       ├── services/     entry upsert, meal totals, export builders
 │       └── utils/        validation, dates, csv
 │   └── test/             Vitest suites
 ├── raw workout data/     original paper-log Markdown (local only, gitignored)

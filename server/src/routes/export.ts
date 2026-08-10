@@ -6,6 +6,7 @@ import {
   buildChatGptPrompt,
   buildCsv,
   buildMarkdown,
+  buildMealsCsv,
   buildWorkoutsCsv,
   buildWorkoutsMarkdown,
 } from '../services/exportService';
@@ -46,6 +47,18 @@ exportRouter.get(
     res
       .setHeader('Content-Disposition', 'attachment; filename="fitness-data.json"')
       .json(entries);
+  })
+);
+
+// GET /api/export/meals.csv?from&to — one row per logged meal
+exportRouter.get(
+  '/meals.csv',
+  asyncHandler(async (req, res) => {
+    const entries = await loadEntries(req);
+    res
+      .type('text/csv; charset=utf-8')
+      .setHeader('Content-Disposition', 'attachment; filename="meals.csv"')
+      .send(buildMealsCsv(entries));
   })
 );
 

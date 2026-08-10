@@ -3,9 +3,21 @@
  * Optional fields that were not recorded are `null`; missing data is never 0.
  */
 
+/** One logged food entry. Calories are required; macros stay optional. */
+export interface Meal {
+  label: string;
+  time: string | null; // "HH:MM"
+  calories: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  notes: string | null;
+}
+
 export interface DailyEntry {
   date: string; // "YYYY-MM-DD"
   weightKg: number | null;
+  /** Derived from `meals` when the day has meals; a manual total otherwise. */
   calories: number | null;
   proteinG: number | null;
   carbsG: number | null;
@@ -18,6 +30,7 @@ export interface DailyEntry {
   trainingType: string | null;
   trainingDurationMin: number | null;
   notes: string | null;
+  meals: Meal[];
 }
 
 export interface Profile {

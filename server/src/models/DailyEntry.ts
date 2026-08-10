@@ -1,5 +1,18 @@
 import mongoose, { Schema } from 'mongoose';
-import { DailyEntry as DailyEntryType } from '../types';
+import { DailyEntry as DailyEntryType, Meal } from '../types';
+
+const mealSchema = new Schema<Meal>(
+  {
+    label: { type: String, default: '' },
+    time: { type: String, default: null },
+    calories: { type: Number, required: true },
+    proteinG: { type: Number, default: null },
+    carbsG: { type: Number, default: null },
+    fatG: { type: Number, default: null },
+    notes: { type: String, default: null },
+  },
+  { _id: false }
+);
 
 /**
  * One document per calendar date (unique index on `date`).
@@ -27,11 +40,24 @@ const dailyEntrySchema = new Schema<DailyEntryType>(
     trainingType: { type: String, default: null },
     trainingDurationMin: { type: Number, default: null },
     notes: { type: String, default: null },
+    meals: { type: [mealSchema], default: [] },
   },
   { timestamps: true, collection: 'daily_entries' }
 );
 
 export const DailyEntryModel = mongoose.model<DailyEntryType>('DailyEntry', dailyEntrySchema);
+
+function serializeMeal(raw: Record<string, unknown>): Meal {
+  return {
+    label: (raw.label ?? '') as string,
+    time: (raw.time ?? null) as string | null,
+    calories: raw.calories as number,
+    proteinG: (raw.proteinG ?? null) as number | null,
+    carbsG: (raw.carbsG ?? null) as number | null,
+    fatG: (raw.fatG ?? null) as number | null,
+    notes: (raw.notes ?? null) as string | null,
+  };
+}
 
 /** Plain API/export representation — no Mongo internals (_id, __v, timestamps). */
 export function serializeEntry(doc: Record<string, unknown>): DailyEntryType {
@@ -50,5 +76,6 @@ export function serializeEntry(doc: Record<string, unknown>): DailyEntryType {
     trainingType: (doc.trainingType ?? null) as string | null,
     trainingDurationMin: (doc.trainingDurationMin ?? null) as number | null,
     notes: (doc.notes ?? null) as string | null,
+    meals: ((doc.meals ?? []) as Record<string, unknown>[]).map(serializeMeal),
   };
 }

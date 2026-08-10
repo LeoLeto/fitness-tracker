@@ -1,4 +1,5 @@
-import { DailyEntry, EntryData, Profile } from '../types';
+import { DailyEntry, EntryData, Meal, Profile } from '../types';
+import { applyMealTotals } from '../services/mealTotals';
 import { isValidDateStr } from './dates';
 
 export type ValidationResult<T> =
@@ -6,6 +7,7 @@ export type ValidationResult<T> =
   | { ok: false; errors: string[] };
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const MAX_MEALS_PER_DAY = 30;
 
 interface NumberRule {
   min: number;
@@ -42,6 +44,60 @@ function parseOptionalString(v: unknown, maxLen: number): string | null | 'inval
 }
 
 /**
+ * Validates a `meals` array. Calories are required per meal; macros are
+ * optional and absent means not recorded.
+ */
+function validateMeals(raw: unknown, errors: string[]): Meal[] {
+  if (!Array.isArray(raw)) {
+    errors.push('meals must be an array');
+    return [];
+  }
+  if (raw.length > MAX_MEALS_PER_DAY) {
+    errors.push(`too many meals (max ${MAX_MEALS_PER_DAY})`);
+    return [];
+  }
+
+  const meals: Meal[] = [];
+  raw.forEach((rawMeal, i) => {
+    const m = (rawMeal ?? {}) as Record<string, unknown>;
+    const label = `meal ${i + 1}`;
+
+    const calories = parseOptionalNumber(m.calories, { min: 0, max: 20000, integer: true });
+    if (calories === 'invalid' || calories === null) {
+      errors.push(`${label}: calories are required`);
+      return;
+    }
+    const fields = {
+      proteinG: parseOptionalNumber(m.proteinG, { min: 0, max: 2000 }),
+      carbsG: parseOptionalNumber(m.carbsG, { min: 0, max: 3000 }),
+      fatG: parseOptionalNumber(m.fatG, { min: 0, max: 1500 }),
+      labelText: parseOptionalString(m.label, 60),
+      time: parseOptionalString(m.time, 5),
+      notes: parseOptionalString(m.notes, 300),
+    };
+    for (const [key, value] of Object.entries(fields)) {
+      if (value === 'invalid') errors.push(`${label}: ${key} is invalid`);
+    }
+    if (fields.time !== null && fields.time !== 'invalid' && !TIME_RE.test(fields.time)) {
+      errors.push(`${label}: time must be HH:MM (24h)`);
+      return;
+    }
+    if (Object.values(fields).includes('invalid')) return;
+
+    meals.push({
+      label: (fields.labelText as string | null) ?? '',
+      time: fields.time as string | null,
+      calories,
+      proteinG: fields.proteinG as number | null,
+      carbsG: fields.carbsG as number | null,
+      fatG: fields.fatG as number | null,
+      notes: fields.notes as string | null,
+    });
+  });
+  return meals;
+}
+
+/**
  * Validates a daily entry body. Every optional field that is missing or empty
  * is normalised to `null`; a save fully replaces the stored data for that date.
  * A date-only entry is allowed (e.g. a weight-only or notes-only day).
@@ -55,7 +111,9 @@ export function validateEntry(body: unknown, dateOverride?: string): ValidationR
     errors.push('date must be a valid ISO date (YYYY-MM-DD)');
   }
 
-  const fields: { [K in keyof EntryData]: EntryData[K] | 'invalid' } = {
+  // Everything except `meals`, which is validated separately below.
+  type ScalarEntryData = Omit<EntryData, 'meals'>;
+  const fields: { [K in keyof ScalarEntryData]: ScalarEntryData[K] | 'invalid' } = {
     weightKg: parseOptionalNumber(b.weightKg, { min: 20, max: 400 }),
     calories: parseOptionalNumber(b.calories, { min: 0, max: 20000, integer: true }),
     proteinG: parseOptionalNumber(b.proteinG, { min: 0, max: 2000 }),
@@ -82,8 +140,70 @@ export function validateEntry(body: unknown, dateOverride?: string): ValidationR
     errors.push('weighedTime must be HH:MM (24h)');
   }
 
+  const meals = 'meals' in b ? validateMeals(b.meals, errors) : [];
+
   if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, value: { date: date as string, ...(fields as EntryData) } };
+  return {
+    ok: true,
+    value: applyMealTotals({
+      date: date as string,
+      ...(fields as ScalarEntryData),
+      meals,
+    }),
+  };
+}
+
+/**
+ * Validates a partial daily-entry update: only the keys present in the body
+ * are validated and applied. This lets the Weigh and Food pages each save
+ * their own slice of a day without overwriting the other's fields.
+ */
+export function validateEntryPatch(body: unknown): ValidationResult<Partial<EntryData>> {
+  const errors: string[] = [];
+  const b = (body ?? {}) as Record<string, unknown>;
+  const patch: Partial<EntryData> = {};
+
+  const numberRules: Record<string, NumberRule> = {
+    weightKg: { min: 20, max: 400 },
+    calories: { min: 0, max: 20000, integer: true },
+    proteinG: { min: 0, max: 2000 },
+    carbsG: { min: 0, max: 3000 },
+    fatG: { min: 0, max: 1500 },
+    trainingDurationMin: { min: 0, max: 1440, integer: true },
+  };
+  for (const [key, rule] of Object.entries(numberRules)) {
+    if (!(key in b)) continue;
+    const v = parseOptionalNumber(b[key], rule);
+    if (v === 'invalid') errors.push(`${key} is invalid`);
+    else (patch as Record<string, unknown>)[key] = v;
+  }
+
+  for (const key of ['bowelMovement', 'beforeFood', 'afterBowelMovement', 'trained']) {
+    if (!(key in b)) continue;
+    const v = parseOptionalBool(b[key]);
+    if (v === 'invalid') errors.push(`${key} is invalid`);
+    else (patch as Record<string, unknown>)[key] = v;
+  }
+
+  const stringRules: Record<string, number> = {
+    weighedTime: 5,
+    trainingType: 100,
+    notes: 2000,
+  };
+  for (const [key, maxLen] of Object.entries(stringRules)) {
+    if (!(key in b)) continue;
+    const v = parseOptionalString(b[key], maxLen);
+    if (v === 'invalid') errors.push(`${key} is invalid`);
+    else (patch as Record<string, unknown>)[key] = v;
+  }
+  if (patch.weighedTime != null && !TIME_RE.test(patch.weighedTime)) {
+    errors.push('weighedTime must be HH:MM (24h)');
+  }
+
+  if ('meals' in b) patch.meals = validateMeals(b.meals, errors);
+
+  if (errors.length > 0) return { ok: false, errors };
+  return { ok: true, value: patch };
 }
 
 /** Validates a partial profile update; only provided keys are validated and applied. */

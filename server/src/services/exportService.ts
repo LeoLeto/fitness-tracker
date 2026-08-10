@@ -26,6 +26,7 @@ const CSV_HEADER = [
   'training_type',
   'training_duration_min',
   'notes',
+  'meal_count',
 ];
 
 function yesNo(v: boolean | null): string {
@@ -54,8 +55,42 @@ export function buildCsv(entries: DailyEntry[]): string {
     e.trainingType ?? '',
     num(e.trainingDurationMin),
     e.notes ?? '',
+    e.meals.length > 0 ? String(e.meals.length) : '',
   ]);
   return toCsv([CSV_HEADER, ...rows]);
+}
+
+const MEALS_CSV_HEADER = [
+  'date',
+  'meal_number',
+  'label',
+  'time',
+  'calories',
+  'protein_g',
+  'carbs_g',
+  'fat_g',
+  'notes',
+];
+
+/** One CSV row per logged meal (days logged as a single total produce no rows). */
+export function buildMealsCsv(entries: DailyEntry[]): string {
+  const rows: string[][] = [];
+  for (const e of entries) {
+    e.meals.forEach((meal, i) => {
+      rows.push([
+        e.date,
+        String(i + 1),
+        meal.label,
+        meal.time ?? '',
+        String(meal.calories),
+        num(meal.proteinG),
+        num(meal.carbsG),
+        num(meal.fatG),
+        meal.notes ?? '',
+      ]);
+    });
+  }
+  return toCsv([MEALS_CSV_HEADER, ...rows]);
 }
 
 interface ExportSummary {

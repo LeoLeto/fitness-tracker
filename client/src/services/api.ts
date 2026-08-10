@@ -68,6 +68,15 @@ export const api = {
   },
   saveEntry: (entry: DailyEntry) =>
     request<DailyEntry>('/entries', { method: 'POST', body: JSON.stringify(entry) }),
+  /**
+   * Saves only the given fields of a day, leaving the rest untouched — so the
+   * Weigh and Food pages never overwrite each other's data.
+   */
+  patchEntry: (date: string, patch: Partial<Omit<DailyEntry, 'date'>>) =>
+    request<DailyEntry>(`/entries/${date}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
   deleteEntry: (date: string) =>
     request<void>(`/entries/${date}`, { method: 'DELETE' }),
 
@@ -141,7 +150,7 @@ export const api = {
 
   /** Download URLs for CSV / JSON exports. */
   exportUrl: (
-    kind: 'csv' | 'json' | 'workouts.csv' | 'workouts.json',
+    kind: 'csv' | 'json' | 'meals.csv' | 'workouts.csv' | 'workouts.json',
     from?: string,
     to?: string
   ) => `${BASE}/export/${kind}${rangeQuery(from, to)}`,

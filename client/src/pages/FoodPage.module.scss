@@ -1,0 +1,227 @@
+// ── Running day total ───────────────────────────────────────────────────────
+
+.totalCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.totalMain {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.totalLabel {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.totalValue {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--accent-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.totalUnit {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.targetSide {
+  text-align: right;
+}
+
+.remaining {
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.remainingOver {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--warn);
+  font-variant-numeric: tabular-nums;
+}
+
+.meter {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.meterFill {
+  height: 100%;
+  background: var(--accent-deep);
+  border-radius: 999px;
+}
+
+.meterFillOver {
+  height: 100%;
+  background: var(--warn);
+  border-radius: 999px;
+}
+
+.macroRow {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.macroNote {
+  font-weight: 500;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+// ── Meal rows ───────────────────────────────────────────────────────────────
+
+.empty {
+  color: var(--text-muted);
+  text-align: center;
+  font-size: 14.5px;
+}
+
+.meal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.mealHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mealIndex {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-faint);
+  width: 16px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.mealLabel {
+  flex: 1;
+  min-width: 60px;
+  padding: 8px 10px;
+  min-height: 42px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+// Wide enough for a 12-hour "08:30 AM" value plus the picker icon.
+.mealTime {
+  width: 124px;
+  flex-shrink: 0;
+  padding: 8px 4px;
+  min-height: 42px;
+  font-size: 13.5px;
+  text-align: center;
+}
+
+.removeMeal {
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px 4px;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--bad);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.mealFields {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.mealField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+
+  span {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-faint);
+  }
+
+  input {
+    padding: 8px 6px;
+    min-height: 46px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.kcalInput {
+  color: var(--text);
+}
+
+// ── Day-total mode / shared ─────────────────────────────────────────────────
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionHeading {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.dirtyNote {
+  margin: -6px 0 0;
+  font-size: 12.5px;
+  color: var(--warn);
+  text-align: center;
+}
+
+.modeSwitch {
+  border: none;
+  background: none;
+  color: var(--accent-deep);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px;
+  align-self: center;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    border-radius: 4px;
+  }
+}

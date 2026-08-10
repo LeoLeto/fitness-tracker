@@ -1,5 +1,10 @@
 // Train page + exercise logger styles.
 
+.savedBadge {
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+
 .routineChips {
   display: flex;
   gap: 6px;

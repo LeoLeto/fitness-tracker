@@ -68,11 +68,41 @@
   text-overflow: ellipsis;
 }
 
+.foodCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  border-left: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  padding: 12px 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--surface-2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+}
+
+.mealCount {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
 .delete {
   border: none;
   background: none;
   color: var(--text-faint);
-  padding: 0 16px;
+  padding: 0 14px;
   font-size: 15px;
   cursor: pointer;
 

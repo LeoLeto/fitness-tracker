@@ -6,8 +6,26 @@
  * result reports how many data points it was computed from.
  */
 
+/**
+ * One logged food entry. `calories` is required (a meal without calories has
+ * nothing to contribute); macros stay optional and missing means missing.
+ */
+export interface Meal {
+  label: string;
+  time: string | null; // "HH:MM"
+  calories: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  notes: string | null;
+}
+
 export interface EntryData {
   weightKg: number | null;
+  /**
+   * Day total. Derived from `meals` whenever the day has meals; otherwise a
+   * manually entered total (legacy days and quick single-number entry).
+   */
   calories: number | null;
   proteinG: number | null;
   carbsG: number | null;
@@ -20,6 +38,8 @@ export interface EntryData {
   trainingType: string | null;
   trainingDurationMin: number | null;
   notes: string | null;
+  /** Individual food entries; empty when the day was logged as a single total. */
+  meals: Meal[];
 }
 
 export interface DailyEntry extends EntryData {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { DayNav } from '../components/DayNav';
 import { ExerciseCard } from '../components/train/ExerciseCard';
 import { ExerciseManager } from '../components/train/ExerciseManager';
 import {
@@ -14,7 +15,6 @@ import { api } from '../services/api';
 import { Workout } from '../types';
 import { addDays, formatMedium, todayStr } from '../utils/dates';
 import { ROUTINE_ORDER, routineLabel, workoutSummary } from '../utils/workouts';
-import logStyles from './LogPage.module.scss';
 import pageStyles from '../styles/page.module.scss';
 import styles from '../components/train/train.module.scss';
 
@@ -197,41 +197,15 @@ export function TrainPage() {
         <h1>Train</h1>
       </div>
 
-      <div className={`card ${logStyles.dateCard}`}>
-        <button
-          type="button"
-          className={logStyles.dayArrow}
-          aria-label="Previous day"
-          onClick={() => setParams({ date: addDays(date, -1) })}
-        >
-          ‹
-        </button>
-        <div className={logStyles.dateCenter}>
-          <input
-            type="date"
-            value={date}
-            max={todayStr()}
-            aria-label="Workout date"
-            onChange={(e) => e.target.value && setParams({ date: e.target.value })}
-            className={logStyles.dateInput}
-          />
-          <span className={logStyles.dateHuman}>
-            {date === todayStr() ? 'Today' : formatMedium(date)}
-            {!isCardio && existing && (
-              <span className={logStyles.editingBadge}> · editing saved session</span>
-            )}
-          </span>
-        </div>
-        <button
-          type="button"
-          className={logStyles.dayArrow}
-          aria-label="Next day"
-          disabled={date >= todayStr()}
-          onClick={() => setParams({ date: addDays(date, 1) })}
-        >
-          ›
-        </button>
-      </div>
+      <DayNav
+        date={date}
+        onChange={(next) => setParams({ date: next })}
+        hint={
+          !isCardio && existing ? (
+            <span className={styles.savedBadge}> · editing saved session</span>
+          ) : null
+        }
+      />
 
       <div className={styles.routineChips} role="group" aria-label="Routine">
         {routines.map((r) => (

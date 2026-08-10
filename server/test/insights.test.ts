@@ -25,6 +25,7 @@ function entry(date: string, weightKg: number | null): DailyEntry {
     trainingType: null,
     trainingDurationMin: null,
     notes: null,
+    meals: [],
   };
 }
 

@@ -27,7 +27,7 @@ export function HistoryPage() {
     <div className={pageStyles.page}>
       <div className={pageStyles.pageHeader}>
         <h1>History</h1>
-        <p className="muted">Tap a day to edit it.</p>
+        <p className="muted">Tap a day to edit its weigh-in, or the calories to edit its food.</p>
       </div>
 
       {entries.error && <div className={pageStyles.error}>{entries.error}</div>}
@@ -42,18 +42,32 @@ export function HistoryPage() {
             <button
               type="button"
               className={styles.rowMain}
-              onClick={() => navigate(`/log?date=${entry.date}`)}
+              onClick={() => navigate(`/weigh?date=${entry.date}`)}
             >
               <span className={styles.date}>{formatMedium(entry.date)}</span>
               <span className={styles.values}>
                 <span className={styles.value}>{fmtKg(entry.weightKg)}</span>
-                <span className={styles.value}>{fmtKcal(entry.calories)}</span>
                 <span className={styles.valueMinor}>
                   {entry.proteinG != null ? `P ${fmtGrams(entry.proteinG)}` : ''}
                 </span>
-                <span className={styles.valueMinor}>{entry.trained === true ? '🏋 trained' : ''}</span>
+                <span className={styles.valueMinor}>
+                  {entry.trained === true ? '🏋 trained' : ''}
+                </span>
               </span>
               {entry.notes && <span className={styles.notes}>{entry.notes}</span>}
+            </button>
+            <button
+              type="button"
+              className={styles.foodCell}
+              aria-label={`Edit food for ${formatMedium(entry.date)}`}
+              onClick={() => navigate(`/food?date=${entry.date}`)}
+            >
+              <span className={styles.value}>{fmtKcal(entry.calories)}</span>
+              {entry.meals.length > 0 && (
+                <span className={styles.mealCount}>
+                  {entry.meals.length} meal{entry.meals.length === 1 ? '' : 's'}
+                </span>
+              )}
             </button>
             <button
               type="button"
