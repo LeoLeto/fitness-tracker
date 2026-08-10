@@ -15,6 +15,7 @@ import { api } from '../services/api';
 import { DailyEntry } from '../types';
 import { formatMedium, formatShort, todayStr } from '../utils/dates';
 import { fmtKg } from '../utils/format';
+import { parseDecimal } from '../utils/numeric';
 import pageStyles from '../styles/page.module.scss';
 import styles from './WeighPage.module.scss';
 
@@ -99,9 +100,8 @@ export function WeighPage() {
     setForm((f) => ({ ...f, [key]: value }));
 
   const save = async () => {
-    const trimmed = form.weight.trim();
-    const weightKg = trimmed === '' ? null : Number(trimmed.replace(',', '.'));
-    if (weightKg !== null && !Number.isFinite(weightKg)) {
+    const weightKg = parseDecimal(form.weight);
+    if (weightKg === undefined) {
       setError('Weight is not a valid number.');
       return;
     }
@@ -128,9 +128,9 @@ export function WeighPage() {
     }
   };
 
-  const typedWeight = Number(form.weight.replace(',', '.'));
+  const typedWeight = parseDecimal(form.weight);
   const delta =
-    previous?.weightKg != null && Number.isFinite(typedWeight) && form.weight.trim() !== ''
+    previous?.weightKg != null && typeof typedWeight === 'number'
       ? typedWeight - previous.weightKg
       : null;
 
@@ -163,7 +163,6 @@ export function WeighPage() {
             onChange={(v) => set('weight', v)}
             placeholder={previous?.weightKg != null ? String(previous.weightKg) : 'e.g. 63.7'}
             mode="decimal"
-            step="0.1"
           />
           {previous?.weightKg != null && (
             <p className={styles.previous}>

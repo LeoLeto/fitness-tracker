@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { NumericInput } from '../components/fields';
 import { useToast } from '../components/Toast';
 import { useApi } from '../hooks/useApi';
 import { ThemeChoice, useTheme } from '../hooks/useTheme';
 import { api } from '../services/api';
 import { Profile } from '../types';
+import { parseDecimal } from '../utils/numeric';
 import pageStyles from '../styles/page.module.scss';
 import styles from './SettingsPage.module.scss';
 
@@ -53,10 +55,7 @@ export function SettingsPage() {
 
   const save = async () => {
     if (!form) return;
-    const num = (s: string) => {
-      const n = Number(s.replace(',', '.'));
-      return Number.isFinite(n) ? n : null;
-    };
+    const num = (s: string) => parseDecimal(s) ?? null;
     const age = num(form.age);
     const height = num(form.heightCm);
     const target = num(form.targetWeightChangeKgPerWeek);
@@ -137,20 +136,19 @@ export function SettingsPage() {
               </label>
               <label className={styles.field}>
                 <span>Age</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <NumericInput
+                  decimal={false}
                   value={form.age}
-                  onChange={(e) => set('age', e.target.value)}
+                  ariaLabel="Age"
+                  onChange={(v) => set('age', v)}
                 />
               </label>
               <label className={styles.field}>
                 <span>Height (cm)</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
+                <NumericInput
                   value={form.heightCm}
-                  onChange={(e) => set('heightCm', e.target.value)}
+                  ariaLabel="Height in cm"
+                  onChange={(v) => set('heightCm', v)}
                 />
               </label>
             </div>
@@ -166,22 +164,18 @@ export function SettingsPage() {
             <div className={styles.row}>
               <label className={styles.field}>
                 <span>Target weight change (kg/week)</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.05"
+                <NumericInput
                   value={form.targetWeightChangeKgPerWeek}
-                  onChange={(e) => set('targetWeightChangeKgPerWeek', e.target.value)}
+                  ariaLabel="Target weight change in kg per week"
+                  onChange={(v) => set('targetWeightChangeKgPerWeek', v)}
                 />
               </label>
               <label className={styles.field}>
                 <span>Training days / week</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.5"
+                <NumericInput
                   value={form.trainingDaysPerWeek}
-                  onChange={(e) => set('trainingDaysPerWeek', e.target.value)}
+                  ariaLabel="Training days per week"
+                  onChange={(v) => set('trainingDaysPerWeek', v)}
                 />
               </label>
             </div>
@@ -204,21 +198,21 @@ export function SettingsPage() {
             <div className={styles.row}>
               <label className={styles.field}>
                 <span>Estimated maintenance (kcal, optional)</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <NumericInput
+                  decimal={false}
                   value={form.maintenanceCalories}
-                  onChange={(e) => set('maintenanceCalories', e.target.value)}
+                  ariaLabel="Estimated maintenance calories"
+                  onChange={(v) => set('maintenanceCalories', v)}
                   placeholder="from Analysis"
                 />
               </label>
               <label className={styles.field}>
                 <span>Current calorie target (kcal, optional)</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <NumericInput
+                  decimal={false}
                   value={form.calorieTarget}
-                  onChange={(e) => set('calorieTarget', e.target.value)}
+                  ariaLabel="Current calorie target"
+                  onChange={(v) => set('calorieTarget', v)}
                   placeholder="e.g. 2300"
                 />
               </label>

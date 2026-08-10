@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { InsightsPanel } from '../components/InsightsPanel';
 import { RangePicker, RangeState, defaultRange } from '../components/RangePicker';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { NumericInput } from '../components/fields';
 import { TimelineCharts } from '../components/charts/TimelineCharts';
 import { useToast } from '../components/Toast';
 import { useApi } from '../hooks/useApi';
 import { api } from '../services/api';
 import { addDays, formatLong, todayStr } from '../utils/dates';
 import { countNote, fmtKcal, fmtTrend } from '../utils/format';
+import { parseDecimal } from '../utils/numeric';
 import pageStyles from '../styles/page.module.scss';
 import styles from './AnalysisPage.module.scss';
 
@@ -189,20 +191,20 @@ export function AnalysisPage() {
               )}
             </div>
             <div className={styles.manualRow}>
-              <input
-                type="number"
-                inputMode="numeric"
+              <NumericInput
+                decimal={false}
                 placeholder="Set manually, e.g. 2300"
+                ariaLabel="Calorie target"
                 value={targetDraft}
-                onChange={(e) => setTargetDraft(e.target.value)}
+                onChange={setTargetDraft}
               />
               <button
                 type="button"
                 className="btn"
                 disabled={savingTarget || targetDraft.trim() === ''}
                 onClick={() => {
-                  const n = Number(targetDraft);
-                  if (Number.isFinite(n) && n > 0) void saveTarget(Math.round(n));
+                  const n = parseDecimal(targetDraft);
+                  if (n != null && n > 0) void saveTarget(Math.round(n));
                 }}
               >
                 Save

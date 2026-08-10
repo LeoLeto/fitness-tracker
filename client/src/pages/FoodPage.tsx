@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { DayNav } from '../components/DayNav';
+import { NumericInput } from '../components/fields';
 import { useToast } from '../components/Toast';
 import { useApi } from '../hooks/useApi';
 import { api } from '../services/api';
 import { DailyEntry, Meal } from '../types';
 import { formatMedium, todayStr } from '../utils/dates';
 import { fmtGrams, fmtKcal } from '../utils/format';
+import { parseDecimal } from '../utils/numeric';
 import pageStyles from '../styles/page.module.scss';
 import styles from './FoodPage.module.scss';
 
@@ -43,13 +45,7 @@ function currentTime(): string {
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
 
-/** '' → null, otherwise a finite number or undefined when unparseable. */
-function parseNum(s: string): number | null | undefined {
-  const t = s.trim();
-  if (t === '') return null;
-  const n = Number(t.replace(',', '.'));
-  return Number.isFinite(n) ? n : undefined;
-}
+const parseNum = parseDecimal;
 
 /** Live totals from the editor rows, so the day accumulates as you type. */
 function editorTotals(rows: EditorMeal[]) {
@@ -408,43 +404,36 @@ export function FoodPage() {
               <div className={styles.mealFields}>
                 <label className={styles.mealField}>
                   <span>kcal</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
+                  <NumericInput
+                    decimal={false}
                     className={styles.kcalInput}
                     value={row.calories}
-                    aria-label={`Meal ${i + 1} calories`}
-                    onChange={(e) => updateRow(row.key, { calories: e.target.value })}
+                    ariaLabel={`Meal ${i + 1} calories`}
+                    onChange={(v) => updateRow(row.key, { calories: v })}
                   />
                 </label>
                 <label className={styles.mealField}>
                   <span>protein</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
+                  <NumericInput
                     value={row.protein}
-                    aria-label={`Meal ${i + 1} protein`}
-                    onChange={(e) => updateRow(row.key, { protein: e.target.value })}
+                    ariaLabel={`Meal ${i + 1} protein`}
+                    onChange={(v) => updateRow(row.key, { protein: v })}
                   />
                 </label>
                 <label className={styles.mealField}>
                   <span>carbs</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
+                  <NumericInput
                     value={row.carbs}
-                    aria-label={`Meal ${i + 1} carbs`}
-                    onChange={(e) => updateRow(row.key, { carbs: e.target.value })}
+                    ariaLabel={`Meal ${i + 1} carbs`}
+                    onChange={(v) => updateRow(row.key, { carbs: v })}
                   />
                 </label>
                 <label className={styles.mealField}>
                   <span>fat</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
+                  <NumericInput
                     value={row.fat}
-                    aria-label={`Meal ${i + 1} fat`}
-                    onChange={(e) => updateRow(row.key, { fat: e.target.value })}
+                    ariaLabel={`Meal ${i + 1} fat`}
+                    onChange={(v) => updateRow(row.key, { fat: v })}
                   />
                 </label>
               </div>
@@ -483,53 +472,46 @@ export function FoodPage() {
             <div className={styles.mealFields}>
               <label className={styles.mealField}>
                 <span>kcal</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <NumericInput
+                  decimal={false}
                   className={styles.kcalInput}
                   value={dayTotal.calories}
-                  aria-label="Day calories"
-                  onChange={(e) => {
-                    setDayTotal((d) => ({ ...d, calories: e.target.value }));
+                  ariaLabel="Day calories"
+                  onChange={(v) => {
+                    setDayTotal((d) => ({ ...d, calories: v }));
                     setDirty(true);
                   }}
                 />
               </label>
               <label className={styles.mealField}>
                 <span>protein</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <NumericInput
                   value={dayTotal.protein}
-                  aria-label="Day protein"
-                  onChange={(e) => {
-                    setDayTotal((d) => ({ ...d, protein: e.target.value }));
+                  ariaLabel="Day protein"
+                  onChange={(v) => {
+                    setDayTotal((d) => ({ ...d, protein: v }));
                     setDirty(true);
                   }}
                 />
               </label>
               <label className={styles.mealField}>
                 <span>carbs</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <NumericInput
                   value={dayTotal.carbs}
-                  aria-label="Day carbs"
-                  onChange={(e) => {
-                    setDayTotal((d) => ({ ...d, carbs: e.target.value }));
+                  ariaLabel="Day carbs"
+                  onChange={(v) => {
+                    setDayTotal((d) => ({ ...d, carbs: v }));
                     setDirty(true);
                   }}
                 />
               </label>
               <label className={styles.mealField}>
                 <span>fat</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <NumericInput
                   value={dayTotal.fat}
-                  aria-label="Day fat"
-                  onChange={(e) => {
-                    setDayTotal((d) => ({ ...d, fat: e.target.value }));
+                  ariaLabel="Day fat"
+                  onChange={(v) => {
+                    setDayTotal((d) => ({ ...d, fat: v }));
                     setDirty(true);
                   }}
                 />

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
+import { NumericInput } from '../fields';
 import { formatShort } from '../../utils/dates';
 import { formatSets } from '../../utils/workouts';
 import { EditorExercise, EditorSet, emptyEditorSet, setFromWorkout } from './editorTypes';
@@ -149,22 +150,18 @@ export function ExerciseCard({
           )}
           {exercise.sets.map((s, i) => (
             <div key={i} className={styles.setRow}>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.5"
+              <NumericInput
                 value={s.weight}
                 placeholder={exercise.isBodyweight ? 'BW' : 'kg'}
-                aria-label={`Set ${i + 1} weight`}
-                onChange={(e) => updateSet(i, { weight: e.target.value })}
+                ariaLabel={`Set ${i + 1} weight`}
+                onChange={(v) => updateSet(i, { weight: v })}
               />
-              <input
-                type="number"
-                inputMode="numeric"
+              <NumericInput
+                decimal={false}
                 value={s.reps}
                 placeholder="reps"
-                aria-label={`Set ${i + 1} reps`}
-                onChange={(e) => updateSet(i, { reps: e.target.value })}
+                ariaLabel={`Set ${i + 1} reps`}
+                onChange={(v) => updateSet(i, { reps: v })}
               />
               <div className={styles.rirChips} role="group" aria-label={`Set ${i + 1} RIR`}>
                 {RIR_OPTIONS.map((r) => (

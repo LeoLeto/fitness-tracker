@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DayNav } from '../components/DayNav';
+import { NumericInput } from '../components/fields';
 import { ExerciseCard } from '../components/train/ExerciseCard';
 import { ExerciseManager } from '../components/train/ExerciseManager';
 import {
@@ -14,6 +15,7 @@ import { useApi } from '../hooks/useApi';
 import { api } from '../services/api';
 import { Workout } from '../types';
 import { addDays, formatMedium, todayStr } from '../utils/dates';
+import { parseDecimal } from '../utils/numeric';
 import { ROUTINE_ORDER, routineLabel, workoutSummary } from '../utils/workouts';
 import pageStyles from '../styles/page.module.scss';
 import styles from '../components/train/train.module.scss';
@@ -157,8 +159,8 @@ export function TrainPage() {
   );
 
   const saveCardio = async () => {
-    const duration = Number(cardioDuration);
-    if (!Number.isFinite(duration) || duration <= 0) {
+    const duration = parseDecimal(cardioDuration);
+    if (duration == null || duration <= 0) {
       setError('Enter the cardio duration in minutes.');
       return;
     }
@@ -299,12 +301,12 @@ export function TrainPage() {
             </label>
             <label className={styles.cardioField}>
               <span>Duration (min)</span>
-              <input
-                type="number"
-                inputMode="numeric"
+              <NumericInput
+                decimal={false}
                 value={cardioDuration}
                 placeholder="30"
-                onChange={(e) => setCardioDuration(e.target.value)}
+                ariaLabel="Cardio duration in minutes"
+                onChange={setCardioDuration}
               />
             </label>
           </div>

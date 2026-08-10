@@ -1,6 +1,50 @@
 import { ReactNode } from 'react';
 import { SegmentedControl } from './SegmentedControl';
+import { sanitizeNumeric } from '../utils/numeric';
 import styles from './fields.module.scss';
+
+interface NumericInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  /** Allow a decimal separator (either `.` or `,`). Integers-only when false. */
+  decimal?: boolean;
+  placeholder?: string;
+  ariaLabel?: string;
+  className?: string;
+}
+
+/**
+ * Numeric entry as a sanitised text input.
+ *
+ * `type="number"` is avoided on purpose: it accepts only `.` as the decimal
+ * separator, so on a phone whose keypad offers `,` the character is silently
+ * dropped and decimals can't be typed at all. A text input with `inputMode`
+ * shows the same keypad, accepts either separator, and never mutates the
+ * value behind the user's back.
+ */
+export function NumericInput({
+  value,
+  onChange,
+  decimal = true,
+  placeholder,
+  ariaLabel,
+  className,
+}: NumericInputProps) {
+  return (
+    <input
+      type="text"
+      inputMode={decimal ? 'decimal' : 'numeric'}
+      autoComplete="off"
+      autoCorrect="off"
+      spellCheck={false}
+      value={value}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      className={className}
+      onChange={(e) => onChange(sanitizeNumeric(e.target.value, decimal))}
+    />
+  );
+}
 
 interface NumberFieldProps {
   label: string;
@@ -10,7 +54,6 @@ interface NumberFieldProps {
   placeholder?: string;
   /** 'decimal' for weight-style inputs, 'numeric' for integers. */
   mode?: 'decimal' | 'numeric';
-  step?: string;
   big?: boolean;
 }
 
@@ -22,20 +65,17 @@ export function NumberField({
   unit,
   placeholder,
   mode = 'decimal',
-  step,
   big = false,
 }: NumberFieldProps) {
   return (
     <label className={styles.field}>
       <span className={styles.label}>{label}</span>
       <span className={styles.inputWrap}>
-        <input
-          type="number"
-          inputMode={mode}
-          step={step ?? (mode === 'decimal' ? '0.1' : '1')}
+        <NumericInput
           value={value}
+          onChange={onChange}
+          decimal={mode === 'decimal'}
           placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
           className={big ? `${styles.input} ${styles.big}` : styles.input}
         />
         {unit && <span className={styles.unit}>{unit}</span>}

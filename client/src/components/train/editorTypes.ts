@@ -1,4 +1,5 @@
 import { Workout, WorkoutExercise, WorkoutSet } from '../../types';
+import { parseDecimal } from '../../utils/numeric';
 
 /** Form state for one set (numbers kept as strings while typing). */
 export interface EditorSet {
@@ -52,12 +53,7 @@ export function emptyEditorSet(weight = ''): EditorSet {
 }
 
 /** '' → null; invalid numbers → undefined (caller shows an error). */
-function parseNum(s: string): number | null | undefined {
-  const t = s.trim();
-  if (t === '') return null;
-  const n = Number(t.replace(',', '.'));
-  return Number.isFinite(n) ? n : undefined;
-}
+const parseNum = parseDecimal;
 
 export function setToWorkout(s: EditorSet): WorkoutSet | 'invalid' | 'empty' {
   const reps = parseNum(s.reps);
