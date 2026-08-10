@@ -18,6 +18,7 @@ const CSV_HEADER = [
   'protein_g',
   'carbs_g',
   'fat_g',
+  'fiber_g',
   'bowel_movement',
   'weighed_time',
   'before_food',
@@ -47,6 +48,7 @@ export function buildCsv(entries: DailyEntry[]): string {
     num(e.proteinG),
     num(e.carbsG),
     num(e.fatG),
+    num(e.fiberG),
     yesNo(e.bowelMovement),
     e.weighedTime ?? '',
     yesNo(e.beforeFood),
@@ -69,6 +71,7 @@ const MEALS_CSV_HEADER = [
   'protein_g',
   'carbs_g',
   'fat_g',
+  'fiber_g',
   'notes',
 ];
 
@@ -86,6 +89,7 @@ export function buildMealsCsv(entries: DailyEntry[]): string {
         num(meal.proteinG),
         num(meal.carbsG),
         num(meal.fatG),
+        num(meal.fiberG),
         meal.notes ?? '',
       ]);
     });

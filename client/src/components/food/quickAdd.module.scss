@@ -1,0 +1,255 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.tabs {
+  display: inline-flex;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 2px;
+  align-self: flex-start;
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 7px 18px;
+  border-radius: calc(var(--radius-sm) - 3px);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.tabOn {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(1, 25, 50, 0.15);
+}
+
+.empty {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+// ── Meal templates ──────────────────────────────────────────────────────────
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  min-height: 50px;
+
+  &:hover {
+    border-color: var(--accent-deep);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.time {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.warn {
+  font-size: 11.5px;
+  color: var(--warn);
+}
+
+.macros {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.kcal {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--accent-deep);
+}
+
+.wholeDay {
+  border: none;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 14.5px;
+  font-weight: 700;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 46px;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+// ── Foods ───────────────────────────────────────────────────────────────────
+
+.foodRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.foodName {
+  flex: 1;
+  min-width: 110px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  padding: 6px 0;
+
+  &:hover {
+    color: var(--accent-deep);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    border-radius: 4px;
+  }
+}
+
+.portions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.portion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  cursor: pointer;
+  min-height: 44px;
+  justify-content: center;
+
+  &:hover {
+    border-color: var(--accent-deep);
+    background: var(--surface-2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.portionQty {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.portionKcal {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.customRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.customInput {
+  width: 84px;
+  padding: 8px;
+  min-height: 42px;
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.customUnit {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.customPreview {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.customAdd {
+  border: none;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}

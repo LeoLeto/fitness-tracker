@@ -9,6 +9,7 @@ const mealSchema = new Schema<Meal>(
     proteinG: { type: Number, default: null },
     carbsG: { type: Number, default: null },
     fatG: { type: Number, default: null },
+    fiberG: { type: Number, default: null },
     notes: { type: String, default: null },
   },
   { _id: false }
@@ -32,6 +33,7 @@ const dailyEntrySchema = new Schema<DailyEntryType>(
     proteinG: { type: Number, default: null },
     carbsG: { type: Number, default: null },
     fatG: { type: Number, default: null },
+    fiberG: { type: Number, default: null },
     bowelMovement: { type: Boolean, default: null },
     weighedTime: { type: String, default: null },
     beforeFood: { type: Boolean, default: null },
@@ -55,6 +57,7 @@ function serializeMeal(raw: Record<string, unknown>): Meal {
     proteinG: (raw.proteinG ?? null) as number | null,
     carbsG: (raw.carbsG ?? null) as number | null,
     fatG: (raw.fatG ?? null) as number | null,
+    fiberG: (raw.fiberG ?? null) as number | null,
     notes: (raw.notes ?? null) as string | null,
   };
 }
@@ -68,6 +71,7 @@ export function serializeEntry(doc: Record<string, unknown>): DailyEntryType {
     proteinG: (doc.proteinG ?? null) as number | null,
     carbsG: (doc.carbsG ?? null) as number | null,
     fatG: (doc.fatG ?? null) as number | null,
+    fiberG: (doc.fiberG ?? null) as number | null,
     bowelMovement: (doc.bowelMovement ?? null) as boolean | null,
     weighedTime: (doc.weighedTime ?? null) as string | null,
     beforeFood: (doc.beforeFood ?? null) as boolean | null,

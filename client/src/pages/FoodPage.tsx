@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { DayNav } from '../components/DayNav';
 import { NumericInput } from '../components/fields';
+import { QuickAdd } from '../components/food/QuickAdd';
 import { useToast } from '../components/Toast';
 import { useApi } from '../hooks/useApi';
 import { api } from '../services/api';
@@ -21,6 +22,7 @@ interface EditorMeal {
   protein: string;
   carbs: string;
   fat: string;
+  fiber: string;
   notes: string | null;
 }
 
@@ -36,6 +38,7 @@ function editorFromMeal(meal: Meal): EditorMeal {
     protein: meal.proteinG != null ? String(meal.proteinG) : '',
     carbs: meal.carbsG != null ? String(meal.carbsG) : '',
     fat: meal.fatG != null ? String(meal.fatG) : '',
+    fiber: meal.fiberG != null ? String(meal.fiberG) : '',
     notes: meal.notes,
   };
 }
@@ -49,7 +52,7 @@ const parseNum = parseDecimal;
 
 /** Live totals from the editor rows, so the day accumulates as you type. */
 function editorTotals(rows: EditorMeal[]) {
-  const sum = (key: 'protein' | 'carbs' | 'fat') => {
+  const sum = (key: 'protein' | 'carbs' | 'fat' | 'fiber') => {
     const values = rows
       .map((r) => parseNum(r[key]))
       .filter((v): v is number => typeof v === 'number');
@@ -64,6 +67,7 @@ function editorTotals(rows: EditorMeal[]) {
     protein: sum('protein'),
     carbs: sum('carbs'),
     fat: sum('fat'),
+    fiber: sum('fiber'),
     mealCount: rows.length,
   };
 }
@@ -79,10 +83,13 @@ export function FoodPage() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quickOpen, setQuickOpen] = useState(true);
   const { toast, show } = useToast();
 
   const allEntries = useApi(() => api.listEntries(), []);
   const profile = useApi(() => api.getProfile(), []);
+  const foods = useApi(() => api.listFoods(), []);
+  const templates = useApi(() => api.listMealTemplates(), []);
 
   // Labels already used, newest first — powers the quick-pick datalist.
   const knownLabels = useMemo(() => {
@@ -157,6 +164,7 @@ export function FoodPage() {
         protein: '',
         carbs: '',
         fat: '',
+        fiber: '',
         notes: null,
       },
     ]);
@@ -166,6 +174,18 @@ export function FoodPage() {
   const removeMeal = (key: number) => {
     setRows((rs) => rs.filter((r) => r.key !== key));
     setDirty(true);
+  };
+
+  /** Appends meals chosen from the library, leaving anything already logged. */
+  const addFromLibrary = (meals: Meal[]) => {
+    setRows((rs) => [...rs, ...meals.map(editorFromMeal)]);
+    setMode('meals');
+    setDirty(true);
+    show(
+      meals.length === 1
+        ? `Added ${meals[0].label || 'meal'} — remember to save`
+        : `Added ${meals.length} meals — remember to save`
+    );
   };
 
   const saveMeals = async () => {
@@ -180,6 +200,7 @@ export function FoodPage() {
         proteinG: parseNum(row.protein),
         carbsG: parseNum(row.carbs),
         fatG: parseNum(row.fat),
+        fiberG: parseNum(row.fiber),
       };
       if (calories === undefined || Object.values(macros).includes(undefined)) {
         setError(`Meal ${i + 1} has a value that isn't a number.`);
@@ -192,6 +213,7 @@ export function FoodPage() {
         proteinG: macros.proteinG as number | null,
         carbsG: macros.carbsG as number | null,
         fatG: macros.fatG as number | null,
+        fiberG: macros.fiberG as number | null,
         notes: row.notes,
       });
     }
@@ -260,6 +282,7 @@ export function FoodPage() {
               protein: dayTotal.protein,
               carbs: dayTotal.carbs,
               fat: dayTotal.fat,
+              fiber: '',
               notes: null,
             },
           ]
@@ -357,9 +380,34 @@ export function FoodPage() {
               F {fmtGrams(totals.fat.total)}
               <span className={styles.macroNote}>{macroNote(totals.fat)}</span>
             </span>
+            <span>
+              Fib {fmtGrams(totals.fiber.total)}
+              <span className={styles.macroNote}>{macroNote(totals.fiber)}</span>
+            </span>
           </div>
         )}
       </section>
+
+      <div className={styles.quickHeader}>
+        <button
+          type="button"
+          className={styles.quickToggle}
+          aria-expanded={quickOpen}
+          onClick={() => setQuickOpen((o) => !o)}
+        >
+          {quickOpen ? '▾' : '▸'} Quick add from library
+        </button>
+        <Link to="/foods" className={styles.libraryLink}>
+          Edit library
+        </Link>
+      </div>
+      {quickOpen && (
+        <QuickAdd
+          foods={foods.data ?? []}
+          templates={templates.data ?? []}
+          onAdd={addFromLibrary}
+        />
+      )}
 
       {error && <div className={pageStyles.error}>{error}</div>}
 
@@ -434,6 +482,14 @@ export function FoodPage() {
                     value={row.fat}
                     ariaLabel={`Meal ${i + 1} fat`}
                     onChange={(v) => updateRow(row.key, { fat: v })}
+                  />
+                </label>
+                <label className={styles.mealField}>
+                  <span>fiber</span>
+                  <NumericInput
+                    value={row.fiber}
+                    ariaLabel={`Meal ${i + 1} fiber`}
+                    onChange={(v) => updateRow(row.key, { fiber: v })}
                   />
                 </label>
               </div>

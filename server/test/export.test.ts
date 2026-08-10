@@ -10,6 +10,7 @@ function entry(date: string, fields: Partial<DailyEntry>): DailyEntry {
     proteinG: null,
     carbsG: null,
     fatG: null,
+    fiberG: null,
     bowelMovement: null,
     weighedTime: null,
     beforeFood: null,
@@ -42,13 +43,43 @@ describe('CSV export', () => {
   it('has the documented columns, ISO dates and consistent decimals', () => {
     const csv = buildCsv(entries);
     const lines = csv.trim().split('\r\n');
-    expect(lines[0]).toBe(
-      'date,weight_kg,calories,protein_g,carbs_g,fat_g,bowel_movement,weighed_time,before_food,after_bowel_movement,trained,training_type,training_duration_min,notes,meal_count'
-    );
-    expect(lines[1]).toBe('2026-08-03,63.7,2140,145,250,65,yes,,,,yes,,,Normal day,');
-    expect(lines[2]).toBe('2026-08-04,63.9,2210,,,,,,,,,,,,');
-    // Missing values stay empty — no zeros, no Mongo IDs anywhere.
-    expect(lines[3]).toBe('2026-08-05,,,,,,,,,,,,,,');
+    const header =
+      'date,weight_kg,calories,protein_g,carbs_g,fat_g,fiber_g,bowel_movement,weighed_time,' +
+      'before_food,after_bowel_movement,trained,training_type,training_duration_min,notes,meal_count';
+    expect(lines[0]).toBe(header);
+
+    // Field-indexed rather than comma-counted, so a new column can't quietly
+    // shift a value into the wrong slot.
+    const columns = header.split(',');
+    const row = (line: string) =>
+      Object.fromEntries(line.split(',').map((v, i) => [columns[i], v])) as Record<string, string>;
+    for (const line of lines) expect(line.split(',')).toHaveLength(columns.length);
+
+    expect(row(lines[1])).toMatchObject({
+      date: '2026-08-03',
+      weight_kg: '63.7',
+      calories: '2140',
+      protein_g: '145',
+      carbs_g: '250',
+      fat_g: '65',
+      fiber_g: '', // not recorded stays empty — never a zero
+      bowel_movement: 'yes',
+      weighed_time: '',
+      trained: 'yes',
+      notes: 'Normal day',
+      meal_count: '',
+    });
+
+    expect(row(lines[2])).toMatchObject({
+      date: '2026-08-04',
+      weight_kg: '63.9',
+      calories: '2210',
+      protein_g: '',
+    });
+
+    const empty = row(lines[3]);
+    expect(Object.values(empty).filter((v) => v !== '')).toEqual(['2026-08-05']);
+
     expect(csv).not.toContain('_id');
   });
 

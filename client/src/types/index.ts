@@ -11,7 +11,68 @@ export interface Meal {
   proteinG: number | null;
   carbsG: number | null;
   fatG: number | null;
+  fiberG: number | null;
   notes: string | null;
+}
+
+// ── Food library ───────────────────────────────────────────────────────────────
+
+export type FoodUnit = 'unit' | 'g' | 'ml';
+
+/** A reusable food: nutrition per `basisQty` units, plus one-tap portions. */
+export interface Food {
+  id: string;
+  name: string;
+  unit: FoodUnit;
+  basisQty: number;
+  calories: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+  portions: number[];
+  notes: string;
+  archived: boolean;
+}
+
+/** A food already scaled to one quantity, ready to log as a meal. */
+export interface FoodPortion {
+  qty: number;
+  label: string;
+  calories: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+}
+
+export interface FoodWithPortions extends Food {
+  portionOptions: FoodPortion[];
+}
+
+export interface MealTemplateItem {
+  foodId: string;
+  foodName: string;
+  qty: number;
+}
+
+export interface MealTemplate {
+  id: string;
+  name: string;
+  time: string | null;
+  items: MealTemplateItem[];
+  orderIndex: number;
+  archived: boolean;
+}
+
+/** A template with nutrition summed from the current library. */
+export interface ResolvedMealTemplate extends MealTemplate {
+  calories: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+  missingItems: string[];
 }
 
 export interface DailyEntry {
@@ -22,6 +83,7 @@ export interface DailyEntry {
   proteinG: number | null;
   carbsG: number | null;
   fatG: number | null;
+  fiberG: number | null;
   bowelMovement: boolean | null;
   weighedTime: string | null;
   beforeFood: boolean | null;
@@ -89,7 +151,7 @@ export interface AnalyticsSummary {
   latestWeight: { date: string; weightKg: number } | null;
   weight: { avg7: WindowStat; avg14: WindowStat; avg28: WindowStat };
   calories: { avg7: WindowStat; avg14: WindowStat; avg28: WindowStat };
-  macros: { protein: WindowStat; carbs: WindowStat; fat: WindowStat };
+  macros: { protein: WindowStat; carbs: WindowStat; fat: WindowStat; fiber: WindowStat };
   trend: TrendResult | null;
   target: {
     kgPerWeek: number;

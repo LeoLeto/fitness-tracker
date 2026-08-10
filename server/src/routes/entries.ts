@@ -87,6 +87,7 @@ entriesRouter.patch(
       proteinG: current?.proteinG ?? null,
       carbsG: current?.carbsG ?? null,
       fatG: current?.fatG ?? null,
+      fiberG: current?.fiberG ?? null,
       meals: current?.meals ?? [],
       ...result.value,
     });

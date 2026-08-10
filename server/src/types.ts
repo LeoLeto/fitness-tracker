@@ -17,6 +17,7 @@ export interface Meal {
   proteinG: number | null;
   carbsG: number | null;
   fatG: number | null;
+  fiberG: number | null;
   notes: string | null;
 }
 
@@ -30,6 +31,7 @@ export interface EntryData {
   proteinG: number | null;
   carbsG: number | null;
   fatG: number | null;
+  fiberG: number | null;
   bowelMovement: boolean | null;
   weighedTime: string | null; // "HH:MM", optional context for the weigh-in
   beforeFood: boolean | null;
@@ -59,6 +61,73 @@ export interface Profile {
   /** Manually accepted/overridden daily calorie target. */
   calorieTarget: number | null;
   notes: string;
+}
+
+// ── Food library ───────────────────────────────────────────────────────────────
+
+/** How a food's quantity is expressed. */
+export type FoodUnit = 'unit' | 'g' | 'ml';
+
+/**
+ * A reusable food with its nutrition per `basisQty` units, plus the portion
+ * sizes worth a one-tap button (e.g. skimmed milk in 200 ml and 300 ml).
+ * Macros left as `null` are simply not recorded for that food.
+ */
+export interface Food {
+  id: string;
+  name: string;
+  unit: FoodUnit;
+  basisQty: number;
+  calories: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+  portions: number[];
+  notes: string;
+  archived: boolean;
+}
+
+/** A food scaled to one quantity, ready to become a meal. */
+export interface FoodPortion {
+  qty: number;
+  label: string;
+  calories: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+}
+
+export interface FoodWithPortions extends Food {
+  portionOptions: FoodPortion[];
+}
+
+export interface MealTemplateItem {
+  foodId: string;
+  /** Denormalised so a template still reads sensibly if a food is removed. */
+  foodName: string;
+  qty: number;
+}
+
+/** A named set of foods — one tap logs the whole meal. */
+export interface MealTemplate {
+  id: string;
+  name: string;
+  time: string | null;
+  items: MealTemplateItem[];
+  orderIndex: number;
+  archived: boolean;
+}
+
+export interface ResolvedMealTemplate extends MealTemplate {
+  calories: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+  /** Names of items whose food is no longer in the library. */
+  missingItems: string[];
 }
 
 /** An average plus the number of data points it was computed from. */
@@ -109,7 +178,7 @@ export interface AnalyticsSummary {
   weight: { avg7: WindowStat; avg14: WindowStat; avg28: WindowStat };
   calories: { avg7: WindowStat; avg14: WindowStat; avg28: WindowStat };
   /** Macro averages over the selected period. */
-  macros: { protein: WindowStat; carbs: WindowStat; fat: WindowStat };
+  macros: { protein: WindowStat; carbs: WindowStat; fat: WindowStat; fiber: WindowStat };
   trend: TrendResult | null;
   target: {
     kgPerWeek: number;

@@ -174,6 +174,11 @@ export function DashboardPage() {
               value={fmtGrams(a.macros.fat.avg)}
               sub={windowSub(a.macros.fat, 'recorded day')}
             />
+            <StatCard
+              label="Fiber avg"
+              value={fmtGrams(a.macros.fiber.avg)}
+              sub={windowSub(a.macros.fiber, 'recorded day')}
+            />
           </div>
 
           <div className={`card ${styles.chartCard}`}>

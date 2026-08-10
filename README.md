@@ -68,7 +68,9 @@ npm test
 Covers: moving averages, date-aware regression, the maintenance-calorie
 formula, missing-value handling (never averaged as zero), duplicate-date
 upserts, insufficient-data reporting, meal accumulation and partial-macro
-handling, partial-update (`PATCH`) semantics, the workout notation parser
+handling, partial-update (`PATCH`) semantics, food-portion scaling, meal
+templates (each of the plan's five meals is asserted against its stated
+total), decimal input with either separator, the workout notation parser
 (including the `*`/`?`/🚨/⬆️⬇️ subtleties), strength metrics, and the
 insight rules.
 
@@ -102,7 +104,8 @@ in exports.
 |---|---|
 | **Dashboard** | Current weight, 7/14/28-day averages (with measurement counts), weight trend vs target, calorie & macro averages, this week's training, weight/calorie/combined charts, quick date ranges (7d…1y, custom). |
 | **Weigh-in** | Body weight plus the previous weigh-in and day-over-day delta, with the optional weigh-in conditions (time weighed + "Now" button, before food, after bowel movement, bowel movement) always expanded — no taps to reach them. Also day notes and a "trained today" marker. |
-| **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), optional time, calories and optional protein/carbs/fat. The running day total is shown against your calorie target with the amount remaining. A day can also be logged as one total, and an existing total can be split into meals without losing the number. |
+| **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), optional time, calories and optional protein/carbs/fat/fiber. The running day total is shown against your calorie target with the amount remaining. **Quick add** logs from the food library in one tap — a whole meal template, every meal of the day at once, or a single food at one of its usual portions. A day can also be logged as one total, and an existing total can be split into meals without losing the number. |
+| **Food library** | Reusable foods and meal templates. A food stores its nutrition per a reference amount (per 100 ml, per 1 egg, per 50 g) plus the portions worth a one-tap button, so any quantity scales correctly. Templates are lists of foods with quantities, and their totals are computed from the library — editing a food updates every template that uses it. |
 | **Train** | Workout logger: pick a routine (Push/Pull/Legs/Abs/Cardio), log sets with one-tap RIR (0–4) and flag chips, copy the last session with one tap, reorder exercises with ↑↓ (order swaps are recorded automatically), per-exercise "quick text" entry in your own notation, cardio sessions (type + minutes), and an exercise manager (setup notes, bodyweight flag, ordering, archive). |
 | **Exercise progress** | Per-exercise chart of estimated 1RM (or best reps for bodyweight work) over real calendar time, with pain/form-flagged sessions marked, plus a session table. |
 | **History** | All entries — tap a day to edit its weigh-in, tap the calorie figure to edit its food, or delete the day. |
@@ -167,18 +170,41 @@ Bodyweight exercises are tracked by the best set's `reps + RIR` instead.
 
 On mobile the bottom tab bar is the entire navigation — Home, Weigh, Food,
 Train, Stats, More — with no header or branding taking up vertical space.
-History, Weekly Review, Export and Settings live under **More**. On desktop
-(≥820px) a single top nav row replaces the tabs.
+History, Food library, Weekly Review, Export and Settings live under **More**.
+On desktop (≥820px) a single top nav row replaces the tabs.
+
+### The food library
+
+Foods store nutrition **per a reference amount** and are scaled on demand, so
+one entry covers every portion size:
+
+| Food | Stored as | One-tap portions |
+|---|---|---|
+| Skimmed milk | 31 kcal / 3.2 P / 5 C per 100 ml | 200 ml (62 kcal), 300 ml (93 kcal) |
+| Eggs | 70 kcal / 5 P per egg | 3 (210 kcal), 4 (280 kcal) |
+| TSP (dry) | 200 kcal / 25 P / 18 C / 9 fib per 50 g | 50 g |
+| Chicken (raw) | 120 kcal / 20 P per 100 g | 150 g (180 kcal) |
+
+Tapping a portion appends a meal; tapping a food's name opens a custom-amount
+box that scales the same way. Meal templates group foods into a named meal
+(e.g. *04:15 TSP + Apple + Potato*) and log the whole thing in one tap, with
+**Add all N meals** logging a planned day at once.
+
+`npm run seed:foods -w server` seeds the library and templates from the
+maintenance plan (idempotent — foods upsert by name, templates by name).
+Macros the plan doesn't state are left blank rather than invented, so a day's
+fat total honestly reports partial coverage until you fill them in.
 
 ### How meals and day totals relate
 
 A day's calories and macros are a **single source of truth**: whenever a day
 has meals, its totals are derived from them server-side, so every average,
 trend and export stays consistent no matter where the data was entered.
-Macros sum only over the meals that recorded them and the UI says so
-(e.g. "F 18 g · 1/2 meals") rather than silently under-reporting; a macro no
-meal recorded stays missing instead of becoming zero. Days logged before
-meals existed (or entered as one number) keep working exactly as they did.
+Macros (protein, carbs, fat, fiber) sum only over the meals that recorded them
+and the UI says so (e.g. "F 18 g · 1/2 meals") rather than silently
+under-reporting; a macro no meal recorded stays missing instead of becoming
+zero. Days logged before meals existed (or entered as one number) keep working
+exactly as they did.
 
 Because the weigh-in and food screens are separate, each one saves only its
 own fields via `PATCH /api/entries/:date` — logging a weigh-in never touches
@@ -257,12 +283,12 @@ On the **Export** page:
   raw daily data. Paste straight into ChatGPT.
 - **Copy for ChatGPT** — the Markdown summary + table only.
 - **Download CSV** — columns: `date, weight_kg, calories, protein_g, carbs_g,
-  fat_g, bowel_movement, weighed_time, before_food, after_bowel_movement,
-  trained, training_type, training_duration_min, notes, meal_count` (ISO
-  dates, one decimal for weight, no MongoDB internals).
+  fat_g, fiber_g, bowel_movement, weighed_time, before_food,
+  after_bowel_movement, trained, training_type, training_duration_min, notes,
+  meal_count` (ISO dates, one decimal for weight, no MongoDB internals).
 - **Download JSON** — the same raw records as JSON, meals included.
 - **Meals CSV** — one row per logged meal: `date, meal_number, label, time,
-  calories, protein_g, carbs_g, fat_g, notes`.
+  calories, protein_g, carbs_g, fat_g, fiber_g, notes`.
 
 All exports default to the full history; tick "Limit to a date range" to
 export a period.
@@ -278,6 +304,10 @@ GET    /api/profile              PUT    /api/profile
 GET    /api/entries?from&to      POST   /api/entries
 GET    /api/entries/:date        PUT    /api/entries/:date
 PATCH  /api/entries/:date        DELETE /api/entries/:date
+GET    /api/foods                POST   /api/foods
+PUT    /api/foods/:id            DELETE /api/foods/:id
+GET    /api/foods/templates      POST   /api/foods/templates
+PUT    /api/foods/templates/:id  DELETE /api/foods/templates/:id
 GET    /api/exercises?routine    POST   /api/exercises
 PUT    /api/exercises/:id        DELETE /api/exercises/:id
 GET    /api/workouts?from&to&routine&type
@@ -319,12 +349,12 @@ input is validated server-side (dates, numeric ranges, string lengths).
 │       └── styles/       global SCSS + tokens
 ├── server/               Express API
 │   └── src/
-│       ├── models/       DailyEntry, Profile, Exercise, Workout (Mongoose)
-│       ├── routes/       profile, entries, exercises, workouts, analytics, export
+│       ├── models/       DailyEntry, Profile, Food, Exercise, Workout (Mongoose)
+│       ├── routes/       profile, entries, foods, exercises, workouts, analytics, export
 │       ├── analytics/    trend, averages, maintenance, recommendation, weekly
 │       ├── workouts/     notation parser, strength metrics, insights, timeline
-│       ├── scripts/      importRaw (historical notes importer)
-│       ├── services/     entry upsert, meal totals, export builders
+│       ├── scripts/      importRaw (historical notes), seedFoodLibrary
+│       ├── services/     entry upsert, meal totals, food portions, export builders
 │       └── utils/        validation, dates, csv
 │   └── test/             Vitest suites
 ├── raw workout data/     original paper-log Markdown (local only, gitignored)

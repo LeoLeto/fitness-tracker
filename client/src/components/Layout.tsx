@@ -23,7 +23,7 @@ const MOBILE_TABS = [
 ];
 
 // The "More" tab hosts these — keep it highlighted while inside any of them.
-const MORE_PATHS = ['/history', '/weekly', '/export', '/settings'];
+const MORE_PATHS = ['/history', '/weekly', '/export', '/settings', '/foods'];
 
 export function Layout() {
   const location = useLocation();

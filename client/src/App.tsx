@@ -4,6 +4,7 @@ import { AnalysisPage } from './pages/AnalysisPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ExerciseProgressPage } from './pages/ExerciseProgressPage';
 import { ExportPage } from './pages/ExportPage';
+import { FoodLibraryPage } from './pages/FoodLibraryPage';
 import { FoodPage } from './pages/FoodPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { MorePage } from './pages/MorePage';
@@ -19,6 +20,7 @@ export function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/weigh" element={<WeighPage />} />
         <Route path="/food" element={<FoodPage />} />
+        <Route path="/foods" element={<FoodLibraryPage />} />
         {/* The old combined page is now split in two. */}
         <Route path="/log" element={<Navigate to="/weigh" replace />} />
         <Route path="/train" element={<TrainPage />} />

@@ -3,8 +3,12 @@ import {
   DailyEntry,
   Exercise,
   ExerciseSessionPoint,
+  Food,
+  FoodWithPortions,
+  MealTemplate,
   ParsedSession,
   Profile,
+  ResolvedMealTemplate,
   TimelinePayload,
   WeeklySummary,
   Workout,
@@ -89,6 +93,32 @@ export const api = {
     request<{ exercise: string; points: ExerciseSessionPoint[] }>(
       `/analytics/strength?exercise=${encodeURIComponent(exercise)}`
     ),
+
+  /** Foods come back with their one-tap portions already scaled server-side. */
+  listFoods: (includeArchived = false) =>
+    request<FoodWithPortions[]>(`/foods${includeArchived ? '?includeArchived=1' : ''}`),
+  createFood: (data: Partial<Food>) =>
+    request<FoodWithPortions>('/foods', { method: 'POST', body: JSON.stringify(data) }),
+  updateFood: (id: string, data: Partial<Food>) =>
+    request<FoodWithPortions>(`/foods/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteFood: (id: string) => request<void>(`/foods/${id}`, { method: 'DELETE' }),
+
+  listMealTemplates: (includeArchived = false) =>
+    request<ResolvedMealTemplate[]>(
+      `/foods/templates${includeArchived ? '?includeArchived=1' : ''}`
+    ),
+  createMealTemplate: (data: Partial<MealTemplate>) =>
+    request<ResolvedMealTemplate>('/foods/templates', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateMealTemplate: (id: string, data: Partial<MealTemplate>) =>
+    request<ResolvedMealTemplate>(`/foods/templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteMealTemplate: (id: string) =>
+    request<void>(`/foods/templates/${id}`, { method: 'DELETE' }),
 
   listExercises: (routine?: string) =>
     request<Exercise[]>(`/exercises${routine ? `?routine=${encodeURIComponent(routine)}` : ''}`),

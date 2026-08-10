@@ -4,6 +4,7 @@ import styles from './MorePage.module.scss';
 
 const LINKS = [
   { to: '/history', label: 'History', desc: 'All daily entries — tap to edit', icon: '☰' },
+  { to: '/foods', label: 'Food library', desc: 'Foods, portions and meal templates', icon: '🍽' },
   { to: '/weekly', label: 'Weekly Review', desc: 'Week-by-week summaries', icon: '▤' },
   { to: '/export', label: 'Export', desc: 'CSV, JSON, ChatGPT copy', icon: '⇪' },
   { to: '/settings', label: 'Settings', desc: 'Profile, targets, theme', icon: '⚙' },

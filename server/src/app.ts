@@ -5,6 +5,7 @@ import { analyticsRouter } from './routes/analytics';
 import { entriesRouter } from './routes/entries';
 import { exercisesRouter } from './routes/exercises';
 import { exportRouter } from './routes/export';
+import { foodsRouter } from './routes/foods';
 import { profileRouter } from './routes/profile';
 import { workoutsRouter } from './routes/workouts';
 import { HttpError } from './utils/rangeQuery';
@@ -19,6 +20,7 @@ export function createApp() {
   });
   app.use('/api/profile', profileRouter);
   app.use('/api/entries', entriesRouter);
+  app.use('/api/foods', foodsRouter);
   app.use('/api/exercises', exercisesRouter);
   app.use('/api/workouts', workoutsRouter);
   app.use('/api/analytics', analyticsRouter);

@@ -1,0 +1,218 @@
+.back {
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-deep);
+  align-self: flex-start;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+
+  > span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-faint);
+  }
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.smallBtn {
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+// ── Foods ───────────────────────────────────────────────────────────────────
+
+.foodRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.foodInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.foodName {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.foodDetail {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.foodPortions {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.rowActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.basisRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  > * {
+    flex: 1;
+    min-width: 130px;
+  }
+}
+
+.nutritionRow {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+
+  input {
+    text-align: center;
+    padding: 8px 4px;
+    min-height: 46px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.editorActions {
+  display: flex;
+  gap: 8px;
+
+  > * {
+    flex: 1;
+  }
+}
+
+// ── Templates ───────────────────────────────────────────────────────────────
+
+.template {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.templateHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    border-radius: 4px;
+  }
+}
+
+.templateTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.templateTime {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.templateTotals {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-deep);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.templateItems {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  select {
+    flex: 1;
+    min-height: 44px;
+  }
+}
+
+.itemName {
+  flex: 1;
+  font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemQty {
+  width: 84px;
+  flex-shrink: 0;
+  text-align: center;
+  padding: 8px;
+  min-height: 44px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 420px) {
+  .nutritionRow {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

@@ -12,6 +12,7 @@ function meal(calories: number, extra: Partial<Meal> = {}): Meal {
     proteinG: null,
     carbsG: null,
     fatG: null,
+    fiberG: null,
     notes: null,
     ...extra,
   };
@@ -25,6 +26,7 @@ function entry(date: string, fields: Partial<DailyEntry> = {}): DailyEntry {
     proteinG: null,
     carbsG: null,
     fatG: null,
+    fiberG: null,
     bowelMovement: null,
     weighedTime: null,
     beforeFood: null,
@@ -171,10 +173,12 @@ describe('meals CSV export', () => {
       entry('2026-08-11', { calories: 2100 }), // logged as a day total → no rows
     ]);
     const lines = csv.trim().split('\r\n');
-    expect(lines[0]).toBe('date,meal_number,label,time,calories,protein_g,carbs_g,fat_g,notes');
-    expect(lines[1]).toBe('2026-08-10,1,Breakfast,08:30,620,45,,,');
+    expect(lines[0]).toBe(
+      'date,meal_number,label,time,calories,protein_g,carbs_g,fat_g,fiber_g,notes'
+    );
+    expect(lines[1]).toBe('2026-08-10,1,Breakfast,08:30,620,45,,,,');
     // Commas inside a label are quoted, not column-splitting.
-    expect(lines[2]).toBe('2026-08-10,2,"Lunch, big",,810,,,,restaurant');
+    expect(lines[2]).toBe('2026-08-10,2,"Lunch, big",,810,,,,,restaurant');
     expect(lines).toHaveLength(3);
   });
 });

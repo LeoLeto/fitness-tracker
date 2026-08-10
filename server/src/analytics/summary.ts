@@ -77,6 +77,7 @@ export function buildAnalyticsSummary(
       protein: rangeStat(sorted, 'proteinG', from, to),
       carbs: rangeStat(sorted, 'carbsG', from, to),
       fat: rangeStat(sorted, 'fatG', from, to),
+      fiber: rangeStat(sorted, 'fiberG', from, to),
     },
     trend,
     target: {

@@ -11,7 +11,7 @@ export function average(values: number[]): number | null {
   return sum / values.length;
 }
 
-type NumericField = 'weightKg' | 'calories' | 'proteinG' | 'carbsG' | 'fatG';
+type NumericField = 'weightKg' | 'calories' | 'proteinG' | 'carbsG' | 'fatG' | 'fiberG';
 
 /** Non-null values of `field` for entries within [from, to] (inclusive). */
 export function valuesInRange(

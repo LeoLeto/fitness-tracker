@@ -71,6 +71,7 @@ function validateMeals(raw: unknown, errors: string[]): Meal[] {
       proteinG: parseOptionalNumber(m.proteinG, { min: 0, max: 2000 }),
       carbsG: parseOptionalNumber(m.carbsG, { min: 0, max: 3000 }),
       fatG: parseOptionalNumber(m.fatG, { min: 0, max: 1500 }),
+      fiberG: parseOptionalNumber(m.fiberG, { min: 0, max: 500 }),
       labelText: parseOptionalString(m.label, 60),
       time: parseOptionalString(m.time, 5),
       notes: parseOptionalString(m.notes, 300),
@@ -91,6 +92,7 @@ function validateMeals(raw: unknown, errors: string[]): Meal[] {
       proteinG: fields.proteinG as number | null,
       carbsG: fields.carbsG as number | null,
       fatG: fields.fatG as number | null,
+      fiberG: fields.fiberG as number | null,
       notes: fields.notes as string | null,
     });
   });
@@ -119,6 +121,7 @@ export function validateEntry(body: unknown, dateOverride?: string): ValidationR
     proteinG: parseOptionalNumber(b.proteinG, { min: 0, max: 2000 }),
     carbsG: parseOptionalNumber(b.carbsG, { min: 0, max: 3000 }),
     fatG: parseOptionalNumber(b.fatG, { min: 0, max: 1500 }),
+    fiberG: parseOptionalNumber(b.fiberG, { min: 0, max: 500 }),
     bowelMovement: parseOptionalBool(b.bowelMovement),
     weighedTime: parseOptionalString(b.weighedTime, 5),
     beforeFood: parseOptionalBool(b.beforeFood),
@@ -169,6 +172,7 @@ export function validateEntryPatch(body: unknown): ValidationResult<Partial<Entr
     proteinG: { min: 0, max: 2000 },
     carbsG: { min: 0, max: 3000 },
     fatG: { min: 0, max: 1500 },
+    fiberG: { min: 0, max: 500 },
     trainingDurationMin: { min: 0, max: 1440, integer: true },
   };
   for (const [key, rule] of Object.entries(numberRules)) {
