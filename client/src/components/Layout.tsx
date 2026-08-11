@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { ScrollTopFab } from './ScrollTopFab';
 import styles from './Layout.module.scss';
 
 const DESKTOP_NAV = [
@@ -54,6 +55,8 @@ export function Layout() {
       <main className={styles.main}>
         <Outlet />
       </main>
+
+      <ScrollTopFab />
 
       <nav className={styles.bottomNav} aria-label="Main">
         {MOBILE_TABS.map((item) => (

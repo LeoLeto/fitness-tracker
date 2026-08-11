@@ -103,8 +103,8 @@ in exports.
 | Page | What it does |
 |---|---|
 | **Dashboard** | Current weight, 7/14/28-day averages (with measurement counts), weight trend vs target, calorie & macro averages, this week's training, weight/calorie/combined charts, quick date ranges (7d…1y, custom). |
-| **Weigh-in** | Body weight plus the previous weigh-in and day-over-day delta, with the optional weigh-in conditions (time weighed + "Now" button, before food, after bowel movement, bowel movement) always expanded — no taps to reach them. Also day notes and a "trained today" marker. |
-| **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), optional time, calories and optional protein/carbs/fat/fiber. The running day total is shown against your calorie target with the amount remaining. **Quick add** logs from the food library in one tap — a whole meal template, every meal of the day at once, or a single food at one of its usual portions. A day can also be logged as one total, and an existing total can be split into meals without losing the number. |
+| **Weigh-in** | Body weight plus the previous weigh-in and day-over-day delta, with the optional weigh-in conditions (time weighed + "Now" button, before food, after bowel movement) always expanded — no taps to reach them. |
+| **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), optional time, calories and optional protein/carbs/fat/fiber. The running day total is shown against your calorie target with the amount remaining. **Quick add** logs from the food library in one tap — a whole meal template, every meal of the day at once, or a single food at one of its usual portions — and saves it immediately, with a 5-second **Undo** in the toast. A day can also be logged as one total, and an existing total can be split into meals without losing the number. |
 | **Food library** | Reusable foods and meal templates. A food stores its nutrition per a reference amount (per 100 ml, per 1 egg, per 50 g) plus the portions worth a one-tap button, so any quantity scales correctly. Templates are lists of foods with quantities, and their totals are computed from the library — editing a food updates every template that uses it. |
 | **Train** | Workout logger: pick a routine (Push/Pull/Legs/Abs/Cardio), log sets with one-tap RIR (0–4) and flag chips, copy the last session with one tap, reorder exercises with ↑↓ (order swaps are recorded automatically), per-exercise "quick text" entry in your own notation, cardio sessions (type + minutes), and an exercise manager (setup notes, bodyweight flag, ordering, archive). |
 | **Exercise progress** | Per-exercise chart of estimated 1RM (or best reps for bodyweight work) over real calendar time, with pain/form-flagged sessions marked, plus a session table. |
@@ -171,7 +171,8 @@ Bodyweight exercises are tracked by the best set's `reps + RIR` instead.
 On mobile the bottom tab bar is the entire navigation — Home, Weigh, Food,
 Train, Stats, More — with no header or branding taking up vertical space.
 History, Food library, Weekly Review, Export and Settings live under **More**.
-On desktop (≥820px) a single top nav row replaces the tabs.
+On desktop (≥820px) a single top nav row replaces the tabs. A floating ↑ button
+appears once a page is scrolled past 400px, on any page.
 
 ### The food library
 
@@ -185,10 +186,13 @@ one entry covers every portion size:
 | TSP (dry) | 200 kcal / 25 P / 18 C / 9 fib per 50 g | 50 g |
 | Chicken (raw) | 120 kcal / 20 P per 100 g | 150 g (180 kcal) |
 
-Tapping a portion appends a meal; tapping a food's name opens a custom-amount
-box that scales the same way. Meal templates group foods into a named meal
-(e.g. *04:15 TSP + Apple + Potato*) and log the whole thing in one tap, with
-**Add all N meals** logging a planned day at once.
+Tapping a portion logs a meal straight away — no scrolling down to save — and
+the toast offers **Undo** for 5 seconds. Tapping a food's name opens a
+custom-amount box that scales the same way. Meal templates group foods into a
+named meal (e.g. *04:15 TSP + Apple + Potato*) and log the whole thing in one
+tap, with **Add all N meals** logging a planned day at once. The one exception
+is a day logged as a single total: quick-adding there would throw that number
+away, so it still asks for an explicit save.
 
 `npm run seed:foods -w server` seeds the library and templates from the
 maintenance plan (idempotent — foods upsert by name, templates by name).

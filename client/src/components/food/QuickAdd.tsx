@@ -7,8 +7,13 @@ import styles from './quickAdd.module.scss';
 interface QuickAddProps {
   foods: FoodWithPortions[];
   templates: ResolvedMealTemplate[];
-  /** Appends meals to the day being edited. */
+  /** Appends meals to the day being edited, which saves them immediately. */
   onAdd: (meals: Meal[]) => void;
+  /**
+   * A save is in flight. Each save sends the whole meal list, so a second tap
+   * mid-flight could land the older list last and lose the newer meal.
+   */
+  busy?: boolean;
 }
 
 function portionToMeal(food: FoodWithPortions, portion: FoodPortion): Meal {
@@ -56,7 +61,7 @@ function scaleFood(food: FoodWithPortions, qty: number): FoodPortion {
  * One-tap logging from the food library: a whole meal template, the entire
  * day's plan, or a single food at one of its usual portions.
  */
-export function QuickAdd({ foods, templates, onAdd }: QuickAddProps) {
+export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProps) {
   const [tab, setTab] = useState<'meals' | 'foods'>('meals');
   const [customFor, setCustomFor] = useState<string | null>(null);
   const [customQty, setCustomQty] = useState('');
@@ -104,6 +109,7 @@ export function QuickAdd({ foods, templates, onAdd }: QuickAddProps) {
               key={template.id}
               type="button"
               className={styles.row}
+              disabled={busy}
               onClick={() => onAdd([templateToMeal(template)])}
             >
               <span className={styles.rowMain}>
@@ -126,6 +132,7 @@ export function QuickAdd({ foods, templates, onAdd }: QuickAddProps) {
             <button
               type="button"
               className={styles.wholeDay}
+              disabled={busy}
               onClick={() => onAdd(templates.map(templateToMeal))}
             >
               + Add all {templates.length} meals ({dayTotal.toLocaleString('en-US')} kcal)
@@ -159,6 +166,7 @@ export function QuickAdd({ foods, templates, onAdd }: QuickAddProps) {
                     key={portion.qty}
                     type="button"
                     className={styles.portion}
+                    disabled={busy}
                     onClick={() => onAdd([portionToMeal(food, portion)])}
                   >
                     <span className={styles.portionQty}>{portion.label}</span>
@@ -186,6 +194,7 @@ export function QuickAdd({ foods, templates, onAdd }: QuickAddProps) {
                   <button
                     type="button"
                     className={styles.customAdd}
+                    disabled={busy}
                     onClick={() => addCustom(food)}
                   >
                     Add

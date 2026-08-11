@@ -253,3 +253,13 @@
     outline: 2px solid var(--focus-ring);
   }
 }
+
+// The brief window while a tap is being saved: dim rather than look tappable.
+.row:disabled,
+.wholeDay:disabled,
+.portion:disabled,
+.customAdd:disabled {
+  opacity: 0.5;
+  cursor: default;
+  border-color: var(--border);
+}

@@ -50,6 +50,40 @@ function currentTime(): string {
 
 const parseNum = parseDecimal;
 
+/**
+ * Serialises editor rows into meals, or explains why they can't be saved yet.
+ * Shared by the manual save and the auto-save behind a one-tap quick add.
+ */
+function mealsFromRows(rows: EditorMeal[]): { meals: Meal[] } | { error: string } {
+  const meals: Meal[] = [];
+  for (const [i, row] of rows.entries()) {
+    const calories = parseNum(row.calories);
+    if (calories === null) {
+      return { error: `Meal ${i + 1} needs a calorie value (or remove the row).` };
+    }
+    const macros = {
+      proteinG: parseNum(row.protein),
+      carbsG: parseNum(row.carbs),
+      fatG: parseNum(row.fat),
+      fiberG: parseNum(row.fiber),
+    };
+    if (calories === undefined || Object.values(macros).includes(undefined)) {
+      return { error: `Meal ${i + 1} has a value that isn't a number.` };
+    }
+    meals.push({
+      label: row.label.trim(),
+      time: row.time.trim() === '' ? null : row.time,
+      calories: Math.round(calories),
+      proteinG: macros.proteinG as number | null,
+      carbsG: macros.carbsG as number | null,
+      fatG: macros.fatG as number | null,
+      fiberG: macros.fiberG as number | null,
+      notes: row.notes,
+    });
+  }
+  return { meals };
+}
+
 /** Live totals from the editor rows, so the day accumulates as you type. */
 function editorTotals(rows: EditorMeal[]) {
   const sum = (key: 'protein' | 'carbs' | 'fat' | 'fiber') => {
@@ -176,47 +210,88 @@ export function FoodPage() {
     setDirty(true);
   };
 
-  /** Appends meals chosen from the library, leaving anything already logged. */
-  const addFromLibrary = (meals: Meal[]) => {
-    setRows((rs) => [...rs, ...meals.map(editorFromMeal)]);
-    setMode('meals');
-    setDirty(true);
-    show(
-      meals.length === 1
-        ? `Added ${meals[0].label || 'meal'} — remember to save`
-        : `Added ${meals.length} meals — remember to save`
-    );
+  /** Restores the day to a saved meal list — the "Undo" behind a quick add. */
+  const revertTo = async (meals: Meal[]) => {
+    setSaving(true);
+    try {
+      // An empty list must clear the derived totals explicitly: with no meals
+      // the server leaves day totals alone, so they'd survive as stale numbers.
+      const saved = await api.patchEntry(
+        date,
+        meals.length > 0
+          ? { meals }
+          : { meals: [], calories: null, proteinG: null, carbsG: null, fatG: null, fiberG: null }
+      );
+      loadEntry(saved);
+      allEntries.reload();
+      show('Undone');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Undo failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /**
+   * Appends meals chosen from the library and saves them straight away — the
+   * point of one-tap logging is not having to scroll down and confirm. The
+   * pre-add meal list rides along with the toast, so a mistap is one tap from
+   * being reverted for the next 5 seconds.
+   */
+  const addFromLibrary = async (added: Meal[]) => {
+    const label = added.length === 1 ? added[0].label || 'meal' : `${added.length} meals`;
+    const addedKcal = added.reduce((acc, m) => acc + m.calories, 0);
+    const appendRows = () => setRows((rs) => [...rs, ...added.map(editorFromMeal)]);
+
+    // In day-total mode the day is deliberately "one number"; committing meals
+    // would silently discard that total, so keep the explicit save there.
+    if (mode === 'total') {
+      appendRows();
+      setMode('meals');
+      setDirty(true);
+      show(`Added ${label} — save to replace the day total`);
+      return;
+    }
+
+    const existing = mealsFromRows(rows);
+    if ('error' in existing) {
+      // A half-typed row can't be persisted, and guessing a value for it would
+      // be inventing data — fall back to the manual save.
+      appendRows();
+      setDirty(true);
+      setError(existing.error);
+      show(`Added ${label} — fix that row, then save`);
+      return;
+    }
+
+    appendRows();
+    setError(null);
+    setSaving(true);
+    try {
+      const saved = await api.patchEntry(date, { meals: [...existing.meals, ...added] });
+      loadEntry(saved);
+      allEntries.reload();
+      show(`Added ${label} · ${fmtKcal(addedKcal)}`, {
+        action: { label: 'Undo', onAction: () => void revertTo(existing.meals) },
+      });
+    } catch (err) {
+      // The row is in the editor but not in the database — say so, and leave the
+      // manual save as the retry.
+      setDirty(true);
+      const why = err instanceof Error ? err.message : 'Save failed';
+      setError(`${why} — ${label} is not saved yet; use “Save meals” to retry.`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveMeals = async () => {
-    const meals: Meal[] = [];
-    for (const [i, row] of rows.entries()) {
-      const calories = parseNum(row.calories);
-      if (calories === null) {
-        setError(`Meal ${i + 1} needs a calorie value (or remove the row).`);
-        return;
-      }
-      const macros = {
-        proteinG: parseNum(row.protein),
-        carbsG: parseNum(row.carbs),
-        fatG: parseNum(row.fat),
-        fiberG: parseNum(row.fiber),
-      };
-      if (calories === undefined || Object.values(macros).includes(undefined)) {
-        setError(`Meal ${i + 1} has a value that isn't a number.`);
-        return;
-      }
-      meals.push({
-        label: row.label.trim(),
-        time: row.time.trim() === '' ? null : row.time,
-        calories: Math.round(calories),
-        proteinG: macros.proteinG as number | null,
-        carbsG: macros.carbsG as number | null,
-        fatG: macros.fatG as number | null,
-        fiberG: macros.fiberG as number | null,
-        notes: row.notes,
-      });
+    const serialized = mealsFromRows(rows);
+    if ('error' in serialized) {
+      setError(serialized.error);
+      return;
     }
+    const { meals } = serialized;
 
     setError(null);
     setSaving(true);
@@ -405,7 +480,8 @@ export function FoodPage() {
         <QuickAdd
           foods={foods.data ?? []}
           templates={templates.data ?? []}
-          onAdd={addFromLibrary}
+          onAdd={(meals) => void addFromLibrary(meals)}
+          busy={saving}
         />
       )}
 

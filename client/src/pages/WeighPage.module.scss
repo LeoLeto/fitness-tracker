@@ -64,23 +64,6 @@
   }
 }
 
-.notesField {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-
-  span {
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--text-muted);
-  }
-
-  textarea {
-    resize: vertical;
-    min-height: 56px;
-  }
-}
-
 @media (min-width: 640px) {
   .section {
     display: grid;
@@ -89,7 +72,6 @@
     align-items: end;
 
     h2,
-    .notesField,
     .previous {
       grid-column: 1 / -1;
     }

@@ -4,6 +4,10 @@
   bottom: calc(88px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(560px, calc(100vw - 24px));
   background: var(--primary);
   color: var(--primary-contrast);
   font-weight: 600;
@@ -12,6 +16,52 @@
   border-radius: 999px;
   box-shadow: var(--shadow);
   white-space: nowrap;
+}
+
+// With an action the label can be long ("Added Pre-Workout · 620 kcal"), so it
+// wraps instead of spilling off a phone screen.
+.withAction {
+  white-space: normal;
+  padding: 10px 10px 10px 18px;
+}
+
+.message {
+  min-width: 0;
+}
+
+.action {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: var(--primary-contrast);
+  color: var(--primary);
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.countdown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (min-width: 820px) {

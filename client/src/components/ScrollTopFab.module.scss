@@ -1,0 +1,34 @@
+// Stacked above the toast (bottom 88px + pill height) so the two never overlap
+// on a phone; the toast is centred and can be nearly full width.
+.fab {
+  position: fixed;
+  right: 14px;
+  bottom: calc(146px + env(safe-area-inset-bottom));
+  z-index: 30;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (min-width: 820px) {
+  .fab {
+    right: 24px;
+    bottom: 88px;
+  }
+}

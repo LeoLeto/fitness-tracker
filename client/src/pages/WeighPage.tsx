@@ -24,9 +24,6 @@ interface FormState {
   weighedTime: string;
   beforeFood: TriState;
   afterBowelMovement: TriState;
-  bowelMovement: TriState;
-  trained: TriState;
-  notes: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -34,9 +31,6 @@ const EMPTY_FORM: FormState = {
   weighedTime: '',
   beforeFood: 'unset',
   afterBowelMovement: 'unset',
-  bowelMovement: 'unset',
-  trained: 'unset',
-  notes: '',
 };
 
 function formFromEntry(entry: DailyEntry): FormState {
@@ -45,9 +39,6 @@ function formFromEntry(entry: DailyEntry): FormState {
     weighedTime: entry.weighedTime ?? '',
     beforeFood: boolToTriState(entry.beforeFood),
     afterBowelMovement: boolToTriState(entry.afterBowelMovement),
-    bowelMovement: boolToTriState(entry.bowelMovement),
-    trained: boolToTriState(entry.trained),
-    notes: entry.notes ?? '',
   };
 }
 
@@ -108,15 +99,13 @@ export function WeighPage() {
     setError(null);
     setSaving(true);
     try {
-      // PATCH: only the weigh-in slice of the day, so meals stay untouched.
+      // PATCH: only the weigh-in slice of the day, so meals — and any notes or
+      // training flags already recorded elsewhere — stay untouched.
       await api.patchEntry(date, {
         weightKg,
         weighedTime: form.weighedTime.trim() === '' ? null : form.weighedTime,
         beforeFood: triStateToBool(form.beforeFood),
         afterBowelMovement: triStateToBool(form.afterBowelMovement),
-        bowelMovement: triStateToBool(form.bowelMovement),
-        trained: triStateToBool(form.trained),
-        notes: form.notes.trim() === '' ? null : form.notes.trim(),
       });
       setExisting(weightKg !== null);
       allEntries.reload();
@@ -204,34 +193,10 @@ export function WeighPage() {
           />
           <TriStateField
             label="After bowel movement"
+            hint="(context for weight fluctuations)"
             value={form.afterBowelMovement}
             onChange={(v) => set('afterBowelMovement', v)}
           />
-          <TriStateField
-            label="Bowel movement today"
-            hint="(context for weight fluctuations)"
-            value={form.bowelMovement}
-            onChange={(v) => set('bowelMovement', v)}
-          />
-        </section>
-
-        <section className={`card ${styles.section}`}>
-          <h2 className={styles.sectionHeading}>Day context</h2>
-          <TriStateField
-            label="Trained today"
-            hint="(log sets on the Train tab)"
-            value={form.trained}
-            onChange={(v) => set('trained', v)}
-          />
-          <label className={styles.notesField}>
-            <span>Notes</span>
-            <textarea
-              rows={2}
-              value={form.notes}
-              onChange={(e) => set('notes', e.target.value)}
-              placeholder="e.g. Ate very salty food, poor sleep, travel…"
-            />
-          </label>
         </section>
 
         {error && <div className={pageStyles.error}>{error}</div>}
