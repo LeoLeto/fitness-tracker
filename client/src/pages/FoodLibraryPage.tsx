@@ -253,6 +253,9 @@ function FoodRow({
             portions: {food.portionOptions.map((p) => `${p.label} (${p.calories} kcal)`).join(', ')}
           </span>
         )}
+        {/* The note says what the quantity actually refers to (dry weight, one
+            teaspoon…) — it belongs next to the food, not only in the editor. */}
+        {food.notes !== '' && <span className={styles.foodNote}>{food.notes}</span>}
       </div>
       <div className={styles.rowActions}>
         <button type="button" className={styles.smallBtn} disabled={busy} onClick={onEdit}>
@@ -422,6 +425,12 @@ function TemplateCard({
     setOpen(false);
   };
 
+  /** Blank for foods counted in units — those are written as a bare "4". */
+  const unitOf = (foodId: string) => {
+    const unit = foods.find((f) => f.id === foodId)?.unit;
+    return unit != null && unit !== 'unit' ? unit : '';
+  };
+
   const addItem = () => {
     const food = foods.find((f) => f.id === newFoodId);
     if (!food) return;
@@ -451,9 +460,12 @@ function TemplateCard({
         </span>
       </button>
 
+      {/* Quantities with their units, so the collapsed card is a usable recipe. */}
       {!open && (
         <p className={styles.templateItems}>
-          {template.items.map((i) => `${i.foodName} ${i.qty}`).join(' + ') || 'No items'}
+          {template.parts
+            .map((p) => `${p.qty} ${p.foodName}${p.notes !== '' ? ` (${p.notes})` : ''}`)
+            .join(' + ') || 'No items'}
         </p>
       )}
 
@@ -481,6 +493,9 @@ function TemplateCard({
                 ariaLabel={`${item.foodName} quantity`}
                 className={styles.itemQty}
               />
+              {/* The unit the number is in — grams and millilitres are not
+                  interchangeable, and the item itself doesn't carry the unit. */}
+              <span className={styles.itemUnit}>{unitOf(item.foodId)}</span>
               <button
                 type="button"
                 className={styles.smallBtn}

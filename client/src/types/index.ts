@@ -65,6 +65,17 @@ export interface MealTemplate {
   archived: boolean;
 }
 
+/** One line of a template's recipe — the quantity to weigh out, with its unit. */
+export interface TemplatePart {
+  foodName: string;
+  /** Quantity with its unit: "150 g", "200 ml", "4". */
+  qty: string;
+  /** kcal for this quantity; `null` when the food is no longer in the library. */
+  calories: number | null;
+  /** The food's own note ("dry weight", "1 tsp") — preparation context. */
+  notes: string;
+}
+
 /** A template with nutrition summed from the current library. */
 export interface ResolvedMealTemplate extends MealTemplate {
   calories: number;
@@ -72,6 +83,8 @@ export interface ResolvedMealTemplate extends MealTemplate {
   carbsG: number | null;
   fatG: number | null;
   fiberG: number | null;
+  /** The recipe, in item order. */
+  parts: TemplatePart[];
   missingItems: string[];
 }
 

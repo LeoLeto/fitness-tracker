@@ -105,7 +105,7 @@ in exports.
 | **Dashboard** | Current weight, 7/14/28-day averages (with measurement counts), weight trend vs target, calorie & macro averages, this week's training, weight/calorie/combined charts, quick date ranges (7d…1y, custom). |
 | **Weigh-in** | Body weight plus the previous weigh-in and day-over-day delta, with the optional weigh-in conditions (time weighed + "Now" button, before food, after bowel movement) always expanded — no taps to reach them. |
 | **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), optional time, calories and optional protein/carbs/fat/fiber. The running day total is shown against your calorie target with the amount remaining. **Quick add** logs from the food library in one tap — a whole meal template, every meal of the day at once, or a single food at one of its usual portions — and saves it immediately, with a 5-second **Undo** in the toast. A day can also be logged as one total, and an existing total can be split into meals without losing the number. |
-| **Food library** | Reusable foods and meal templates. A food stores its nutrition per a reference amount (per 100 ml, per 1 egg, per 50 g) plus the portions worth a one-tap button, so any quantity scales correctly. Templates are lists of foods with quantities, and their totals are computed from the library — editing a food updates every template that uses it. |
+| **Food library** | Reusable foods and meal templates. A food stores its nutrition per a reference amount (per 100 ml, per 1 egg, per 50 g) plus the portions worth a one-tap button, so any quantity scales correctly. Templates are lists of foods with quantities, and both their totals and their written-out recipe are computed from the library — editing a food updates every template that uses it. |
 | **Train** | Workout logger: pick a routine (Push/Pull/Legs/Abs/Cardio), log sets with one-tap RIR (0–4) and flag chips, copy the last session with one tap, reorder exercises with ↑↓ (order swaps are recorded automatically), per-exercise "quick text" entry in your own notation, cardio sessions (type + minutes), and an exercise manager (setup notes, bodyweight flag, ordering, archive). |
 | **Exercise progress** | Per-exercise chart of estimated 1RM (or best reps for bodyweight work) over real calendar time, with pain/form-flagged sessions marked, plus a session table. |
 | **History** | All entries — tap a day to edit its weigh-in, tap the calorie figure to edit its food, or delete the day. |
@@ -193,6 +193,13 @@ named meal (e.g. *04:15 TSP + Apple + Potato*) and log the whole thing in one
 tap, with **Add all N meals** logging a planned day at once. The one exception
 is a day logged as a single total: quick-adding there would throw that number
 away, so it still asks for an explicit save.
+
+Each template lists its recipe under the name — every quantity with its unit
+plus the food's own note (*50 g TSP (dry) · 200 ml Skimmed milk · 180 g Apple ·
+200 g Potato (raw)*) — so the same row you tap to log is the reference while
+you prepare the meal. The breakdown comes from the API (`parts` on a resolved
+template), computed from the current library, so it can never drift from the
+totals beside it.
 
 `npm run seed:foods -w server` seeds the library and templates from the
 maintenance plan (idempotent — foods upsert by name, templates by name).

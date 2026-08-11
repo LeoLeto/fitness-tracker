@@ -5,6 +5,7 @@ import {
   FoodWithPortions,
   MealTemplate,
   ResolvedMealTemplate,
+  TemplatePart,
 } from '../types';
 
 /**
@@ -51,6 +52,10 @@ export function withPortions(food: Food): FoodWithPortions {
  * Sums a template's items using the current library, so editing a food's
  * nutrition updates every template that uses it. Items whose food is missing
  * are reported instead of silently dropping calories.
+ *
+ * Also returns the recipe as `parts`: the quantity of each food with its unit,
+ * which is what you need in front of you while preparing the meal. A missing
+ * food still gets a part (with unknown calories) so the recipe stays complete.
  */
 export function resolveTemplate(
   template: MealTemplate,
@@ -65,15 +70,29 @@ export function resolveTemplate(
     fatG: null,
     fiberG: null,
   };
+  const parts: TemplatePart[] = [];
   const missingItems: string[] = [];
 
   for (const item of template.items) {
     const food = byId.get(item.foodId);
     if (!food) {
       missingItems.push(item.foodName);
+      // No unit to format with — the bare quantity is all that's left.
+      parts.push({
+        foodName: item.foodName,
+        qty: String(item.qty),
+        calories: null,
+        notes: '',
+      });
       continue;
     }
     const portion = foodPortion(food, item.qty);
+    parts.push({
+      foodName: food.name,
+      qty: portion.label,
+      calories: portion.calories,
+      notes: food.notes,
+    });
     calories += portion.calories;
     for (const key of ['proteinG', 'carbsG', 'fatG', 'fiberG'] as const) {
       const value = portion[key];
@@ -89,6 +108,7 @@ export function resolveTemplate(
     carbsG: macroTotals.carbsG != null ? roundMacro(macroTotals.carbsG) : null,
     fatG: macroTotals.fatG != null ? roundMacro(macroTotals.fatG) : null,
     fiberG: macroTotals.fiberG != null ? roundMacro(macroTotals.fiberG) : null,
+    parts,
     missingItems,
   };
 }

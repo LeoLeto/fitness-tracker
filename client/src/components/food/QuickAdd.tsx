@@ -115,6 +115,20 @@ export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProp
               <span className={styles.rowMain}>
                 {template.time && <span className={styles.time}>{template.time}</span>}
                 <span className={styles.name}>{template.name}</span>
+                {/* The recipe: what to weigh out, so the row doubles as the
+                    reference sheet while the meal is being prepared. */}
+                {template.parts.length > 0 && (
+                  <span className={styles.recipe}>
+                    {template.parts.map((part, i) => (
+                      <span key={`${part.foodName}-${i}`} className={styles.part}>
+                        <span className={styles.partQty}>{part.qty}</span> {part.foodName}
+                        {part.notes !== '' && (
+                          <span className={styles.partNote}> ({part.notes})</span>
+                        )}
+                      </span>
+                    ))}
+                  </span>
+                )}
                 {template.missingItems.length > 0 && (
                   <span className={styles.warn}>
                     missing: {template.missingItems.join(', ')}

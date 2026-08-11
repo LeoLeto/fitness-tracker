@@ -271,6 +271,57 @@ describe('resolveTemplate — the maintenance plan meals', () => {
   });
 });
 
+describe('resolveTemplate — the recipe breakdown', () => {
+  it('states each quantity with its unit, in item order', () => {
+    const resolved = resolveTemplate(
+      template('TSP + Apple + Potato', [
+        [TSP, 50],
+        [MILK, 200],
+        [APPLE, 180],
+        [POTATO, 200],
+      ]),
+      LIBRARY
+    );
+    expect(resolved.parts.map((p) => `${p.qty} ${p.foodName}`)).toEqual([
+      '50 g TSP (dry)',
+      '200 ml Skimmed milk',
+      '180 g Apple',
+      '200 g Potato (raw)',
+    ]);
+    expect(resolved.parts.map((p) => p.calories)).toEqual([200, 62, 90, 154]);
+  });
+
+  it('writes counted foods as a bare number and carries the food\'s note', () => {
+    const oil = food('Oil', { ...OIL, notes: '1 tsp' });
+    const resolved = resolveTemplate(
+      template('Egg Breakfast', [
+        [EGGS, 4],
+        [oil, 1],
+      ]),
+      [EGGS, oil]
+    );
+    expect(resolved.parts[0]).toMatchObject({ qty: '4', foodName: 'Eggs', calories: 280 });
+    // Without the note, "1 Oil" doesn't say how much oil to use.
+    expect(resolved.parts[1]).toMatchObject({ qty: '1', notes: '1 tsp' });
+  });
+
+  it('keeps a missing food in the recipe with unknown calories', () => {
+    const resolved = resolveTemplate(
+      template('Broken', [
+        [CHICKEN, 150],
+        [food('Deleted thing', { id: 'missing-id', calories: 999 }), 100],
+      ]),
+      [CHICKEN]
+    );
+    expect(resolved.parts).toHaveLength(2);
+    expect(resolved.parts[1]).toMatchObject({
+      foodName: 'Deleted thing',
+      qty: '100',
+      calories: null,
+    });
+  });
+});
+
 describe('validateFood', () => {
   it('accepts a food and normalises its portions', () => {
     const result = validateFood({
