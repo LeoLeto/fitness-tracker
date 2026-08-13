@@ -533,9 +533,60 @@
 }
 
 @media (max-width: 480px) {
-  .setsHeader,
-  .setRow {
-    grid-template-columns: 56px 56px auto auto 24px;
+  // Two inputs, five RIR chips, three flag chips and the delete button do not
+  // fit one line on a phone — squeezed into a grid they spilled past the card
+  // edge (the ✕ ended up off screen entirely). Wrapping puts whatever doesn't
+  // fit on a second line instead of shrinking touch targets below the thumb.
+  .setsHeader {
+    grid-template-columns: 60px 60px;
     gap: 4px;
+
+    // RIR labels itself inside the row below; the ? ✱ 🚨 glyphs speak for
+    // themselves (and carry their own tooltips).
+    span:nth-child(3),
+    span:nth-child(4),
+    span:nth-child(5) {
+      display: none;
+    }
+  }
+
+  .setRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 4px;
+
+    input {
+      width: 60px;
+    }
+
+    .rirChips::before {
+      content: 'RIR';
+      align-self: center;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--text-faint);
+      margin-right: 2px;
+    }
+
+    .removeSet {
+      margin-left: auto;
+    }
+  }
+
+  // A set spans more than one line now, so consecutive sets need separating.
+  .setRow + .setRow {
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+  }
+
+  // "variation (e.g. w/step, barbell)" is clipped to a few characters when it
+  // shares a line with both buttons — give it a line of its own.
+  .exerciseActions {
+    flex-wrap: wrap;
+  }
+
+  .variation {
+    flex-basis: 100%;
   }
 }
