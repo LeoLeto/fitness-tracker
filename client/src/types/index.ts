@@ -256,6 +256,21 @@ export interface ExerciseSessionPoint {
   variation: string | null;
 }
 
+/** All-time best single set of one exercise — the logger's target to beat. */
+export interface PersonalBest {
+  exerciseName: string;
+  date: string;
+  /** e1RM of the record set (kg); null for exercises never loaded with weight. */
+  e1rm: number | null;
+  /** reps + RIR of that set — the ranking metric for bodyweight work. */
+  effectiveReps: number;
+  weightKg: number | null;
+  reps: number;
+  rir: number | null;
+  badForm: boolean;
+  pain: boolean;
+}
+
 export interface WeeklyTrainingBar {
   weekStart: string;
   sessions: Record<string, number>;

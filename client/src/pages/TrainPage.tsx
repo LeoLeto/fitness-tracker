@@ -37,6 +37,14 @@ export function TrainPage() {
     () => api.listWorkouts({ from: addDays(todayStr(), -60) }),
     [date, routine]
   );
+  // All-time bests for every exercise: one fetch that survives routine switches.
+  const records = useApi(() => api.getPersonalBests(), []);
+
+  const prByExercise = useMemo(
+    () =>
+      new Map((records.data ?? []).map((r) => [r.exerciseName.trim().toLowerCase(), r])),
+    [records.data]
+  );
 
   const routines = useMemo(() => {
     const found = new Set((allExercises.data ?? []).map((e) => e.routine));
@@ -131,6 +139,7 @@ export function TrainPage() {
       });
       show(`${routineLabel(routine)} saved for ${formatMedium(date)} ✓`);
       recent.reload();
+      records.reload(); // this session may have set a new best
       setExisting((prev) => prev ?? ({} as Workout)); // mark as saved
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
@@ -146,6 +155,7 @@ export function TrainPage() {
     show('Workout deleted');
     setExisting(null);
     recent.reload();
+    records.reload(); // a deleted session can take a record with it
     setParams({});
   };
 
@@ -243,6 +253,8 @@ export function TrainPage() {
                   key={`${ex.exerciseName}-${i}`}
                   exercise={ex}
                   routine={routine}
+                  date={date}
+                  pr={prByExercise.get(ex.exerciseName.trim().toLowerCase()) ?? null}
                   orderMoved={moved[i]}
                   canMoveUp={i > 0}
                   canMoveDown={i < editor.length - 1}

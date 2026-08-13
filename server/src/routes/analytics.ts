@@ -7,7 +7,7 @@ import { serializeWorkout, WorkoutModel } from '../models/Workout';
 import { asyncHandler } from '../utils/asyncHandler';
 import { addDays, todayStr } from '../utils/dates';
 import { parseRangeQuery } from '../utils/rangeQuery';
-import { exerciseSeries } from '../workouts/strength';
+import { exerciseSeries, personalBests } from '../workouts/strength';
 import { buildTimeline } from '../workouts/timeline';
 
 export const analyticsRouter = Router();
@@ -62,6 +62,15 @@ analyticsRouter.get(
     }
     const workouts = await loadWorkouts();
     res.json({ exercise, points: exerciseSeries(workouts, exercise) });
+  })
+);
+
+// GET /api/analytics/records — all-time best set per exercise (for the logger)
+analyticsRouter.get(
+  '/records',
+  asyncHandler(async (_req, res) => {
+    const workouts = await loadWorkouts();
+    res.json({ records: personalBests(workouts) });
   })
 );
 

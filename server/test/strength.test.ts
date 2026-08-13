@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   estimated1RM,
   exerciseSeries,
+  personalBests,
   sessionPoint,
   strengthIndexWeekly,
   weeklyTraining,
@@ -94,6 +95,73 @@ describe('exerciseSeries', () => {
     ];
     const series = exerciseSeries(workouts, 'Chest Press');
     expect(series.map((p) => p.date)).toEqual(['2026-08-01', '2026-08-05']);
+  });
+});
+
+describe('personalBests', () => {
+  it('keeps the best set per exercise and the set that produced it', () => {
+    const workouts = [
+      workout('2026-06-01', 'push', [
+        { name: 'Chest press', sets: [set(90, 7, 2), set(90, 6, 1)] },
+      ]),
+      // 94×7 @1 RIR → 94×(1+8/30) ≈ 119.1 beats 90×7 @2 RIR → 117
+      workout('2026-07-01', 'push', [{ name: 'Chest press', sets: [set(94, 7, 1)] }]),
+      workout('2026-08-01', 'push', [{ name: 'Chest press', sets: [set(80, 10, 0)] }]),
+    ];
+    const [pr] = personalBests(workouts);
+    expect(pr.exerciseName).toBe('Chest press');
+    expect(pr.date).toBe('2026-07-01');
+    expect(pr.e1rm).toBeCloseTo(94 * (1 + 8 / 30), 6);
+    expect(pr.weightKg).toBe(94);
+    expect(pr.reps).toBe(7);
+    expect(pr.rir).toBe(1);
+  });
+
+  it('matches names case-insensitively and reports order independent of input', () => {
+    const workouts = [
+      workout('2026-07-01', 'push', [{ name: 'chest press', sets: [set(94, 7, 1)] }]),
+      workout('2026-06-01', 'push', [{ name: 'Chest press', sets: [set(90, 7, 2)] }]),
+    ];
+    expect(personalBests(workouts)).toHaveLength(1);
+    expect(personalBests(workouts)[0].date).toBe('2026-07-01');
+  });
+
+  it('ranks bodyweight work by effective reps', () => {
+    const workouts = [
+      workout('2026-06-01', 'pull', [{ name: 'Pull-ups', sets: [set(null, 8, 2)] }]),
+      workout('2026-06-08', 'pull', [{ name: 'Pull-ups', sets: [set(null, 11, 0)] }]),
+    ];
+    const [pr] = personalBests(workouts);
+    expect(pr.e1rm).toBeNull();
+    expect(pr.effectiveReps).toBe(11);
+    expect(pr.date).toBe('2026-06-08');
+  });
+
+  it('a loaded set beats an unloaded one, whatever the reps', () => {
+    const workouts = [
+      workout('2026-06-01', 'pull', [{ name: 'Pull-ups', sets: [set(null, 15, 0)] }]),
+      workout('2026-06-08', 'pull', [{ name: 'Pull-ups', sets: [set(10, 5, 0)] }]),
+    ];
+    const [pr] = personalBests(workouts);
+    expect(pr.weightKg).toBe(10);
+    expect(pr.date).toBe('2026-06-08');
+  });
+
+  it('keeps the earlier date when a record is equalled, and carries its flags', () => {
+    const workouts = [
+      workout('2026-06-08', 'push', [{ name: 'Dip', sets: [set(20, 8, 0)] }]),
+      workout('2026-06-01', 'push', [
+        { name: 'Dip', sets: [set(20, 8, 0, { badForm: true })] },
+      ]),
+    ];
+    const [pr] = personalBests(workouts);
+    expect(pr.date).toBe('2026-06-01');
+    expect(pr.badForm).toBe(true);
+  });
+
+  it('ignores cardio sessions', () => {
+    const workouts = [workout('2026-06-06', 'treadmill', [], 'cardio', 30)];
+    expect(personalBests(workouts)).toEqual([]);
   });
 });
 

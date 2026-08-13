@@ -131,16 +131,18 @@ const FOODS: SeedFood[] = [
     portions: [180],
   },
   {
+    // Weighed like the apple: bananas vary enough that "1 banana" is a worse
+    // unit than the grams actually on the scale. 120 g ≈ one medium, peeled.
     name: 'Banana',
-    unit: 'unit',
-    basisQty: 1,
+    unit: 'g',
+    basisQty: 120,
     calories: 105,
     proteinG: 1,
     carbsG: 27,
     fatG: null,
     fiberG: 3,
-    portions: [1],
-    notes: 'Medium, ~120 g edible',
+    portions: [120],
+    notes: 'Peeled weight',
   },
   {
     name: 'Chia seeds',
@@ -223,7 +225,7 @@ const TEMPLATES: SeedTemplate[] = [
     items: [
       { food: 'Chicken (raw)', qty: 150 },
       { food: 'Carrots (raw)', qty: 125 },
-      { food: 'Banana', qty: 1 },
+      { food: 'Banana', qty: 120 },
     ],
     expectedKcal: 335,
   },

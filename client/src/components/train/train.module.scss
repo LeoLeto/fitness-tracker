@@ -149,6 +149,44 @@
   padding-left: 8px;
 }
 
+// ── Personal best ───────────────────────────────────────────────────────────
+
+.prLine {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+// Beaten today: the border earns the accent, the numbers stay the same.
+.prLineBeat {
+  border-style: solid;
+  border-color: var(--accent);
+}
+
+.prLabel {
+  color: var(--text-faint);
+}
+
+.prSet {
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.prBeat {
+  margin-left: auto;
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+
 // ── Set rows ────────────────────────────────────────────────────────────────
 
 .setsHeader,
@@ -181,6 +219,15 @@
     font-variant-numeric: tabular-nums;
     text-align: center;
   }
+}
+
+// An empty field showing last session's number. Italic and faint on purpose:
+// a ghost must never be mistaken for a value that was actually entered.
+.ghost::placeholder {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--text-faint);
+  opacity: 0.75;
 }
 
 .rirChips,
@@ -216,6 +263,13 @@
 .chipPain {
   background: var(--bad-bg);
   border-color: var(--bad);
+}
+
+// Last session's RIR, until this set records its own.
+.chipGhost {
+  border-style: dashed;
+  border-color: var(--accent);
+  color: var(--accent-deep);
 }
 
 .removeSet {

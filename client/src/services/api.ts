@@ -7,6 +7,7 @@ import {
   FoodWithPortions,
   MealTemplate,
   ParsedSession,
+  PersonalBest,
   Profile,
   ResolvedMealTemplate,
   TimelinePayload,
@@ -93,6 +94,9 @@ export const api = {
     request<{ exercise: string; points: ExerciseSessionPoint[] }>(
       `/analytics/strength?exercise=${encodeURIComponent(exercise)}`
     ),
+  /** All-time best set per exercise, across every routine. */
+  getPersonalBests: async (): Promise<PersonalBest[]> =>
+    (await request<{ records: PersonalBest[] }>('/analytics/records')).records,
 
   /** Foods come back with their one-tap portions already scaled server-side. */
   listFoods: (includeArchived = false) =>

@@ -102,13 +102,12 @@ const CHIA = food('Chia seeds', {
   portions: [10],
 });
 const BANANA = food('Banana', {
-  unit: 'unit',
-  basisQty: 1,
+  basisQty: 120,
   calories: 105,
   proteinG: 1,
   carbsG: 27,
   fiberG: 3,
-  portions: [1],
+  portions: [120],
 });
 const OIL = food('Oil', {
   unit: 'unit',
@@ -244,7 +243,7 @@ describe('resolveTemplate — the maintenance plan meals', () => {
       template('Chicken + Carrots + Banana', [
         [CHICKEN, 150],
         [CARROTS, 125],
-        [BANANA, 1],
+        [BANANA, 120],
       ]),
       LIBRARY
     );

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { scrollToTop } from '../utils/scroll';
 import styles from './ScrollTopFab.module.scss';
 
 /** Far enough down that the button can't cover content you're still reading. */
@@ -21,13 +22,8 @@ export function ScrollTopFab() {
 
   if (!visible) return null;
 
-  const toTop = () => {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
-  };
-
   return (
-    <button type="button" className={styles.fab} aria-label="Scroll to top" onClick={toTop}>
+    <button type="button" className={styles.fab} aria-label="Scroll to top" onClick={scrollToTop}>
       <span aria-hidden="true">↑</span>
     </button>
   );

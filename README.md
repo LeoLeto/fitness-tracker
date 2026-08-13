@@ -104,9 +104,9 @@ in exports.
 |---|---|
 | **Dashboard** | Current weight, 7/14/28-day averages (with measurement counts), weight trend vs target, calorie & macro averages, this week's training, weight/calorie/combined charts, quick date ranges (7d…1y, custom). |
 | **Weigh-in** | Body weight plus the previous weigh-in and day-over-day delta, with the optional weigh-in conditions (time weighed + "Now" button, before food, after bowel movement) always expanded — no taps to reach them. |
-| **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), optional time, calories and optional protein/carbs/fat/fiber. The running day total is shown against your calorie target with the amount remaining. **Quick add** logs from the food library in one tap — a whole meal template, every meal of the day at once, or a single food at one of its usual portions — and saves it immediately, with a 5-second **Undo** in the toast. A day can also be logged as one total, and an existing total can be split into meals without losing the number. |
+| **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), optional time, calories and optional protein/carbs/fat/fiber. The running day total is shown against your calorie target with the amount remaining. **Quick add** logs from the food library in one tap — a whole meal template, every meal of the day at once, or a single food at one of its usual portions — and saves it immediately, with a 5-second **Undo** in the toast. Meals already eaten stay **folded behind their count** (tap to edit) and every save returns you to the day total at the top. A day can also be logged as one total, and an existing total can be split into meals without losing the number. |
 | **Food library** | Reusable foods and meal templates. A food stores its nutrition per a reference amount (per 100 ml, per 1 egg, per 50 g) plus the portions worth a one-tap button, so any quantity scales correctly. Templates are lists of foods with quantities, and both their totals and their written-out recipe are computed from the library — editing a food updates every template that uses it. |
-| **Train** | Workout logger: pick a routine (Push/Pull/Legs/Abs/Cardio), log sets with one-tap RIR (0–4) and flag chips, copy the last session with one tap, reorder exercises with ↑↓ (order swaps are recorded automatically), per-exercise "quick text" entry in your own notation, cardio sessions (type + minutes), and an exercise manager (setup notes, bodyweight flag, ordering, archive). |
+| **Train** | Workout logger: pick a routine (Push/Pull/Legs/Abs/Cardio), log sets with one-tap RIR (0–4) and flag chips, **ghosts of the last session** (its weight/reps/RIR shown inside the empty fields, set by set) plus each exercise's **all-time PR and a live "new PR" flag**, copy the last session with one tap, reorder exercises with ↑↓ (order swaps are recorded automatically), per-exercise "quick text" entry in your own notation, cardio sessions (type + minutes), and an exercise manager (setup notes, bodyweight flag, ordering, archive). |
 | **Exercise progress** | Per-exercise chart of estimated 1RM (or best reps for bodyweight work) over real calendar time, with pain/form-flagged sessions marked, plus a session table. |
 | **History** | All entries — tap a day to edit its weigh-in, tap the calorie figure to edit its food, or delete the day. |
 | **Weekly Review** | Monday–Sunday summaries: average weight, weigh-ins, calories, protein, within-week trend, change vs previous week, training days, sessions per routine, cardio minutes, notes. |
@@ -165,6 +165,16 @@ e1RM = weight × (1 + (reps + RIR) / 30)
 ```
 
 Bodyweight exercises are tracked by the best set's `reps + RIR` instead.
+
+**Personal bests** (`GET /api/analytics/records`) rank every set an exercise
+has ever seen by that same metric: a loaded set always beats an unloaded one,
+two loaded sets are compared by e1RM, two unloaded ones by effective reps. Ties
+keep the earlier date, so a PR is dated when it was first reached rather than
+when it was last equalled. Sets flagged for pain (🚨) or bad form (✱) stay
+eligible — they happened — but the flags are shown on the record instead of
+presenting it as a clean lift. While you log, the same comparison runs on the
+sets in the editor, so the "new PR" flag appears while there is still time to
+add another set.
 
 ### Navigation
 
@@ -328,6 +338,7 @@ GET    /api/workouts/:id         PUT    /api/workouts/:id
 DELETE /api/workouts/:id
 GET    /api/analytics?from&to    GET    /api/analytics/weekly
 GET    /api/analytics/strength?exercise
+GET    /api/analytics/records
 GET    /api/analytics/timeline?from&to
 GET    /api/export/csv?from&to
 GET    /api/export/json?from&to

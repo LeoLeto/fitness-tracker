@@ -90,6 +90,26 @@ export interface ExerciseSessionPoint {
   variation: string | null;
 }
 
+/**
+ * All-time best single set of one exercise — the number the logger shows as
+ * the target to beat.
+ */
+export interface PersonalBest {
+  exerciseName: string;
+  /** When the record was set (the earliest date, if it was later equalled). */
+  date: string;
+  /** e1RM of the record set (kg); null for exercises never loaded with weight. */
+  e1rm: number | null;
+  /** reps + RIR of that set — the ranking metric for bodyweight work. */
+  effectiveReps: number;
+  weightKg: number | null;
+  reps: number;
+  rir: number | null;
+  /** Flags on the record set, so a caveated best is never shown as a clean one. */
+  badForm: boolean;
+  pain: boolean;
+}
+
 export interface WeeklyTrainingBar {
   weekStart: string;
   /** Strength sessions per routine that week. */

@@ -1,15 +1,32 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
+import { PersonalBest, WorkoutSet } from '../../types';
 import { NumericInput } from '../fields';
 import { formatShort } from '../../utils/dates';
-import { formatSets } from '../../utils/workouts';
-import { EditorExercise, EditorSet, emptyEditorSet, setFromWorkout } from './editorTypes';
+import {
+  beatsPerformance,
+  bestPerformance,
+  formatPerformance,
+  formatSet,
+  formatSets,
+} from '../../utils/workouts';
+import {
+  EditorExercise,
+  EditorSet,
+  emptyEditorSet,
+  setFromWorkout,
+  setToWorkout,
+} from './editorTypes';
 import styles from './train.module.scss';
 
 interface ExerciseCardProps {
   exercise: EditorExercise;
   routine: string;
+  /** The day being edited — tells a record set in this session from an older one. */
+  date: string;
+  /** All-time best set of this exercise, or null if it has never been logged. */
+  pr: PersonalBest | null;
   orderMoved: 'up' | 'down' | null;
   canMoveUp: boolean;
   canMoveDown: boolean;
@@ -22,6 +39,8 @@ const RIR_OPTIONS = [0, 1, 2, 3, 4];
 export function ExerciseCard({
   exercise,
   routine,
+  date,
+  pr,
   orderMoved,
   canMoveUp,
   canMoveDown,
@@ -81,6 +100,26 @@ export function ExerciseCard({
 
   const loggedSets = exercise.sets.length;
 
+  /**
+   * Where this session stands right now — recomputed as you type, so beating a
+   * record is visible while there's still time to add another set.
+   */
+  const beat = useMemo(() => {
+    if (pr === null) return null;
+    const sets = exercise.sets
+      .map(setToWorkout)
+      .filter((s): s is WorkoutSet => s !== 'invalid' && s !== 'empty');
+    const live = bestPerformance(sets);
+    if (live === null || !beatsPerformance(live, pr)) return null;
+    return {
+      metric: formatPerformance(live),
+      gain:
+        live.e1rm != null && pr.e1rm != null
+          ? `+${(live.e1rm - pr.e1rm).toFixed(1)} kg`
+          : `+${live.effectiveReps - pr.effectiveReps} reps`,
+    };
+  }, [exercise.sets, pr]);
+
   return (
     <section className={`card ${styles.exercise}`}>
       <header className={styles.exerciseHeader}>
@@ -137,6 +176,27 @@ export function ExerciseCard({
         </button>
       )}
 
+      {pr && (
+        <p className={beat ? `${styles.prLine} ${styles.prLineBeat}` : styles.prLine}>
+          <span className={styles.prLabel}>
+            🏆 {pr.date === date ? 'PR this session' : 'PR'}
+          </span>{' '}
+          {formatPerformance(pr)}
+          <span className={styles.prSet}>
+            {' · '}
+            {formatSet(pr)}
+            {pr.badForm && ' ✱'}
+            {pr.pain && ' 🚨'}
+            {pr.date !== date && ` · ${formatShort(pr.date)}`}
+          </span>
+          {beat && (
+            <span className={styles.prBeat}>
+              new PR {beat.metric} ({beat.gain})
+            </span>
+          )}
+        </p>
+      )}
+
       {expanded && (
         <>
           {exercise.sets.length > 0 && (
@@ -148,73 +208,96 @@ export function ExerciseCard({
               <span />
             </div>
           )}
-          {exercise.sets.map((s, i) => (
-            <div key={i} className={styles.setRow}>
-              <NumericInput
-                value={s.weight}
-                placeholder={exercise.isBodyweight ? 'BW' : 'kg'}
-                ariaLabel={`Set ${i + 1} weight`}
-                onChange={(v) => updateSet(i, { weight: v })}
-              />
-              <NumericInput
-                decimal={false}
-                value={s.reps}
-                placeholder="reps"
-                ariaLabel={`Set ${i + 1} reps`}
-                onChange={(v) => updateSet(i, { reps: v })}
-              />
-              <div className={styles.rirChips} role="group" aria-label={`Set ${i + 1} RIR`}>
-                {RIR_OPTIONS.map((r) => (
+          {exercise.sets.map((s, i) => {
+            // Ghost of the same set number last time round: an empty field shows
+            // what you did then, so matching or beating it needs no scrolling.
+            const ghost = exercise.last?.sets[i] ?? null;
+            return (
+              <div key={i} className={styles.setRow}>
+                <NumericInput
+                  value={s.weight}
+                  placeholder={
+                    ghost?.weightKg != null
+                      ? String(ghost.weightKg)
+                      : exercise.isBodyweight
+                        ? 'BW'
+                        : 'kg'
+                  }
+                  className={ghost?.weightKg != null ? styles.ghost : undefined}
+                  ariaLabel={`Set ${i + 1} weight`}
+                  onChange={(v) => updateSet(i, { weight: v })}
+                />
+                <NumericInput
+                  decimal={false}
+                  value={s.reps}
+                  placeholder={ghost ? String(ghost.reps) : 'reps'}
+                  className={ghost ? styles.ghost : undefined}
+                  ariaLabel={`Set ${i + 1} reps`}
+                  onChange={(v) => updateSet(i, { reps: v })}
+                />
+                <div className={styles.rirChips} role="group" aria-label={`Set ${i + 1} RIR`}>
+                  {RIR_OPTIONS.map((r) => {
+                    // Last time's RIR is outlined until this set records its own.
+                    const ghosted = s.rir === null && ghost?.rir === r;
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        className={
+                          s.rir === r
+                            ? `${styles.chip} ${styles.chipOn}`
+                            : ghosted
+                              ? `${styles.chip} ${styles.chipGhost}`
+                              : styles.chip
+                        }
+                        aria-pressed={s.rir === r}
+                        onClick={() => updateSet(i, { rir: s.rir === r ? null : r })}
+                      >
+                        {r}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className={styles.flagChips} role="group" aria-label={`Set ${i + 1} flags`}>
                   <button
-                    key={r}
                     type="button"
-                    className={s.rir === r ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-                    aria-pressed={s.rir === r}
-                    onClick={() => updateSet(i, { rir: s.rir === r ? null : r })}
+                    title="Rep count uncertain (?)"
+                    className={s.repsUncertain ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                    aria-pressed={s.repsUncertain}
+                    onClick={() => updateSet(i, { repsUncertain: !s.repsUncertain })}
                   >
-                    {r}
+                    ?
                   </button>
-                ))}
-              </div>
-              <div className={styles.flagChips} role="group" aria-label={`Set ${i + 1} flags`}>
+                  <button
+                    type="button"
+                    title="Last rep with bad form (*)"
+                    className={s.badForm ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                    aria-pressed={s.badForm}
+                    onClick={() => updateSet(i, { badForm: !s.badForm })}
+                  >
+                    ✱
+                  </button>
+                  <button
+                    type="button"
+                    title="Cut short because of pain (🚨)"
+                    className={s.pain ? `${styles.chip} ${styles.chipPain}` : styles.chip}
+                    aria-pressed={s.pain}
+                    onClick={() => updateSet(i, { pain: !s.pain })}
+                  >
+                    🚨
+                  </button>
+                </div>
                 <button
                   type="button"
-                  title="Rep count uncertain (?)"
-                  className={s.repsUncertain ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-                  aria-pressed={s.repsUncertain}
-                  onClick={() => updateSet(i, { repsUncertain: !s.repsUncertain })}
+                  className={styles.removeSet}
+                  aria-label={`Remove set ${i + 1}`}
+                  onClick={() => removeSet(i)}
                 >
-                  ?
-                </button>
-                <button
-                  type="button"
-                  title="Last rep with bad form (*)"
-                  className={s.badForm ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-                  aria-pressed={s.badForm}
-                  onClick={() => updateSet(i, { badForm: !s.badForm })}
-                >
-                  ✱
-                </button>
-                <button
-                  type="button"
-                  title="Cut short because of pain (🚨)"
-                  className={s.pain ? `${styles.chip} ${styles.chipPain}` : styles.chip}
-                  aria-pressed={s.pain}
-                  onClick={() => updateSet(i, { pain: !s.pain })}
-                >
-                  🚨
+                  ✕
                 </button>
               </div>
-              <button
-                type="button"
-                className={styles.removeSet}
-                aria-label={`Remove set ${i + 1}`}
-                onClick={() => removeSet(i)}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+            );
+          })}
 
           <div className={styles.exerciseActions}>
             <button type="button" className={styles.smallBtn} onClick={addSet}>

@@ -10,6 +10,7 @@ import { DailyEntry, Meal } from '../types';
 import { formatMedium, todayStr } from '../utils/dates';
 import { fmtGrams, fmtKcal } from '../utils/format';
 import { parseDecimal } from '../utils/numeric';
+import { scrollToTop } from '../utils/scroll';
 import pageStyles from '../styles/page.module.scss';
 import styles from './FoodPage.module.scss';
 
@@ -118,6 +119,9 @@ export function FoodPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(true);
+  // Meals already eaten are history, not the thing you came to do — the list
+  // stays folded away behind its count until you actually need to edit a row.
+  const [mealsOpen, setMealsOpen] = useState(false);
   const { toast, show } = useToast();
 
   const allEntries = useApi(() => api.listEntries(), []);
@@ -157,6 +161,9 @@ export function FoodPage() {
       setDayTotal({ calories: '', protein: '', carbs: '', fat: '' });
     }
     setDirty(false);
+    // Reached on every load and after every save: a freshly persisted day is
+    // exactly the case where the meal list has nothing left to say.
+    setMealsOpen(false);
   };
 
   useEffect(() => {
@@ -203,6 +210,7 @@ export function FoodPage() {
       },
     ]);
     setDirty(true);
+    setMealsOpen(true); // the new row is only useful if you can see it
   };
 
   const removeMeal = (key: number) => {
@@ -249,6 +257,7 @@ export function FoodPage() {
       appendRows();
       setMode('meals');
       setDirty(true);
+      setMealsOpen(true);
       show(`Added ${label} — save to replace the day total`);
       return;
     }
@@ -259,6 +268,7 @@ export function FoodPage() {
       // be inventing data — fall back to the manual save.
       appendRows();
       setDirty(true);
+      setMealsOpen(true); // the row that needs fixing has to be reachable
       setError(existing.error);
       show(`Added ${label} — fix that row, then save`);
       return;
@@ -271,6 +281,9 @@ export function FoodPage() {
       const saved = await api.patchEntry(date, { meals: [...existing.meals, ...added] });
       loadEntry(saved);
       allEntries.reload();
+      // The day total is at the top of the page and is the reason for logging at
+      // all — after a save that's where you want to be, not deep in the list.
+      scrollToTop();
       show(`Added ${label} · ${fmtKcal(addedKcal)}`, {
         action: { label: 'Undo', onAction: () => void revertTo(existing.meals) },
       });
@@ -278,6 +291,7 @@ export function FoodPage() {
       // The row is in the editor but not in the database — say so, and leave the
       // manual save as the retry.
       setDirty(true);
+      setMealsOpen(true);
       const why = err instanceof Error ? err.message : 'Save failed';
       setError(`${why} — ${label} is not saved yet; use “Save meals” to retry.`);
     } finally {
@@ -289,6 +303,7 @@ export function FoodPage() {
     const serialized = mealsFromRows(rows);
     if ('error' in serialized) {
       setError(serialized.error);
+      setMealsOpen(true);
       return;
     }
     const { meals } = serialized;
@@ -300,6 +315,7 @@ export function FoodPage() {
       const saved = await api.patchEntry(date, { meals });
       loadEntry(saved);
       allEntries.reload();
+      scrollToTop();
       show(
         meals.length === 0
           ? 'Meals cleared'
@@ -365,6 +381,7 @@ export function FoodPage() {
     );
     setMode('meals');
     setDirty(true);
+    setMealsOpen(true); // splitting a total is an edit — show what it became
   };
 
   const switchToDayTotal = () => {
@@ -495,7 +512,22 @@ export function FoodPage() {
             </div>
           )}
 
-          {rows.map((row, i) => (
+          {rows.length > 0 && (
+            <button
+              type="button"
+              className={styles.loggedToggle}
+              aria-expanded={mealsOpen}
+              onClick={() => setMealsOpen((o) => !o)}
+            >
+              <span aria-hidden="true">{mealsOpen ? '▾' : '▸'}</span>{' '}
+              {totals.mealCount} meal{totals.mealCount === 1 ? '' : 's'} logged
+              {/* The kcal is already in the total card above — what the folded
+                  list needs to say is that it's still editable. */}
+              {!mealsOpen && <span className={styles.loggedHint}>tap to edit</span>}
+            </button>
+          )}
+
+          {mealsOpen && rows.map((row, i) => (
             <section key={row.key} className={`card ${styles.meal}`}>
               <div className={styles.mealHeader}>
                 <span className={styles.mealIndex}>{i + 1}</span>

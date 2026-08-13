@@ -1,6 +1,7 @@
 import { weekStartOf } from '../utils/dates';
 import {
   ExerciseSessionPoint,
+  PersonalBest,
   WeeklyTrainingBar,
   Workout,
   WorkoutExercise,
@@ -67,6 +68,63 @@ export function exerciseSeries(workouts: Workout[], exerciseName: string): Exerc
     }
   }
   return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+/**
+ * Ranks two performances the way the strength metric does: a loaded set beats
+ * an unloaded one, two loaded sets are compared by e1RM, and two unloaded ones
+ * by effective reps. Mirrored client-side in the logger's "new PR" check.
+ */
+export function beatsPerformance(
+  a: { e1rm: number | null; effectiveReps: number },
+  b: { e1rm: number | null; effectiveReps: number }
+): boolean {
+  if (a.e1rm != null && b.e1rm != null) return a.e1rm > b.e1rm;
+  if (a.e1rm != null) return true;
+  if (b.e1rm != null) return false;
+  return a.effectiveReps > b.effectiveReps;
+}
+
+/**
+ * All-time best set per exercise (matched by name, case-insensitive).
+ *
+ * Ties keep the earlier set, so the date is when the record was first reached
+ * rather than when it was last equalled. Sets flagged for pain or bad form are
+ * still eligible — they happened — but the flags travel with the record so the
+ * logger can show the caveat instead of presenting it as a clean lift.
+ */
+export function personalBests(workouts: Workout[]): PersonalBest[] {
+  const best = new Map<string, PersonalBest>();
+  // Chronological, so the tie-break above resolves to the earliest date
+  // whatever order the caller passes.
+  const sorted = [...workouts].sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  for (const w of sorted) {
+    if (w.type !== 'strength') continue;
+    for (const ex of w.exercises) {
+      const key = ex.exerciseName.trim().toLowerCase();
+      if (key === '') continue;
+      for (const s of ex.sets) {
+        const candidate: PersonalBest = {
+          exerciseName: ex.exerciseName,
+          date: w.date,
+          e1rm: s.weightKg != null ? estimated1RM(s.weightKg, s.reps, s.rir) : null,
+          effectiveReps: s.reps + (s.rir ?? 0),
+          weightKg: s.weightKg,
+          reps: s.reps,
+          rir: s.rir,
+          badForm: s.badForm,
+          pain: s.pain,
+        };
+        const current = best.get(key);
+        if (current === undefined || beatsPerformance(candidate, current)) {
+          best.set(key, candidate);
+        }
+      }
+    }
+  }
+
+  return [...best.values()].sort((a, b) => a.exerciseName.localeCompare(b.exerciseName));
 }
 
 /** Weekly training bars: strength sessions per routine, sets, cardio minutes. */
