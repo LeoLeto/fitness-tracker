@@ -69,13 +69,14 @@ export interface Profile {
 export type FoodUnit = 'unit' | 'g' | 'ml';
 
 /**
- * Produce is grouped apart from staples because it is logged differently: you
- * cut a wedge of pumpkin, put it on the scale, and the weight is whatever it
- * is — there is no sensible one-tap portion to offer.
+ * Foods that get weighed out are grouped apart from staples because they are
+ * logged differently: you cut a wedge of pumpkin or a slab of cheese, put it on
+ * the scale, and the weight is whatever it is — there is no sensible one-tap
+ * portion to offer. `other` is everything logged by its usual portions instead.
  */
-export type FoodCategory = 'fruit' | 'vegetable' | 'other';
+export type FoodCategory = 'fruit' | 'vegetable' | 'dairy' | 'other';
 
-export const FOOD_CATEGORIES: FoodCategory[] = ['fruit', 'vegetable', 'other'];
+export const FOOD_CATEGORIES: FoodCategory[] = ['fruit', 'vegetable', 'dairy', 'other'];
 
 /**
  * A reusable food with its nutrition per `basisQty` units, plus the portion

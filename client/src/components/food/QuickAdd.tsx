@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NumericInput } from '../fields';
-import { FoodPortion, FoodWithPortions, Meal, ResolvedMealTemplate } from '../../types';
+import { FoodCategory, FoodPortion, FoodWithPortions, Meal, ResolvedMealTemplate } from '../../types';
 import { parseDecimal } from '../../utils/numeric';
 import styles from './quickAdd.module.scss';
 
@@ -58,6 +58,16 @@ function scaleFood(food: FoodWithPortions, qty: number): FoodPortion {
 }
 
 /**
+ * The Weigh tab's sections, in display order. Adding a category to
+ * `FoodCategory` and a row here is all a new group needs.
+ */
+const WEIGH_GROUPS: { category: FoodCategory; heading: string }[] = [
+  { category: 'fruit', heading: 'Fruits' },
+  { category: 'vegetable', heading: 'Vegetables' },
+  { category: 'dairy', heading: 'Dairy' },
+];
+
+/**
  * One-tap logging from the food library: a whole meal template, the entire
  * day's plan, or a single food at one of its usual portions.
  */
@@ -68,14 +78,14 @@ export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProp
 
   const dayTotal = templates.reduce((acc, t) => acc + t.calories, 0);
 
-  // Produce is logged by whatever the scale says — a wedge cut off a pumpkin
-  // has no portion worth a button — so it gets its own tab keyed on weight
-  // rather than sharing the one-tap list.
-  const produce = {
-    fruit: foods.filter((f) => f.category === 'fruit'),
-    vegetable: foods.filter((f) => f.category === 'vegetable'),
-  };
-  const hasProduce = produce.fruit.length + produce.vegetable.length > 0;
+  // Anything logged by whatever the scale says — a wedge cut off a pumpkin or a
+  // slab of cheese has no portion worth a button — lives in its own tab keyed on
+  // weight rather than sharing the one-tap list. Categories are the grouping
+  // inside it; `other` is the staples, which are logged by portion instead.
+  const weighed = WEIGH_GROUPS.map((group) => ({
+    ...group,
+    foods: foods.filter((f) => f.category === group.category),
+  })).filter((group) => group.foods.length > 0);
 
   const addCustom = (food: FoodWithPortions) => {
     const qty = parseDecimal(customQty);
@@ -239,24 +249,20 @@ export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProp
 
       {tab === 'weigh' && (
         <>
-          {!hasProduce && (
+          {weighed.length === 0 && (
             <p className={styles.empty}>
-              No fruit or vegetables in the library yet — add one and set its category to
-              Fruit or Vegetable.
+              Nothing to weigh in the library yet — add a food and give it a category
+              other than Staple.
             </p>
           )}
-          {(['fruit', 'vegetable'] as const).map((category) =>
-            produce[category].length === 0 ? null : (
-              <div key={category} className={styles.weighGroup}>
-                <h3 className={styles.weighHeading}>
-                  {category === 'fruit' ? 'Fruits' : 'Vegetables'}
-                </h3>
-                {produce[category].map((food) => (
-                  <WeighRow key={food.id} food={food} busy={busy} onAdd={onAdd} />
-                ))}
-              </div>
-            )
-          )}
+          {weighed.map((group) => (
+            <div key={group.category} className={styles.weighGroup}>
+              <h3 className={styles.weighHeading}>{group.heading}</h3>
+              {group.foods.map((food) => (
+                <WeighRow key={food.id} food={food} busy={busy} onAdd={onAdd} />
+              ))}
+            </div>
+          ))}
         </>
       )}
     </section>

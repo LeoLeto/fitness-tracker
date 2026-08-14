@@ -19,8 +19,8 @@ export interface Meal {
 
 export type FoodUnit = 'unit' | 'g' | 'ml';
 
-/** Produce is grouped apart because it is logged by whatever the scale says. */
-export type FoodCategory = 'fruit' | 'vegetable' | 'other';
+/** Foods grouped apart because they are logged by whatever the scale says. */
+export type FoodCategory = 'fruit' | 'vegetable' | 'dairy' | 'other';
 
 /** A reusable food: nutrition per `basisQty` units, plus one-tap portions. */
 export interface Food {

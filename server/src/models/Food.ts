@@ -7,7 +7,7 @@ const foodSchema = new Schema<FoodDoc>(
   {
     name: { type: String, required: true },
     unit: { type: String, enum: ['unit', 'g', 'ml'], default: 'g' },
-    category: { type: String, enum: ['fruit', 'vegetable', 'other'], default: 'other' },
+    category: { type: String, enum: ['fruit', 'vegetable', 'dairy', 'other'], default: 'other' },
     basisQty: { type: Number, required: true },
     calories: { type: Number, required: true },
     proteinG: { type: Number, default: null },

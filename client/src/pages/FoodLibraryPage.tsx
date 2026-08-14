@@ -325,8 +325,8 @@ function FoodEditor({
         </label>
       </div>
 
-      {/* Fruit and vegetables get their own weigh-it-and-log-it tab in quick
-          add; everything else is logged from its portions. */}
+      {/* Anything but "Staple" appears in quick add's weigh-it-and-log-it tab,
+          grouped under its category; staples are logged from their portions. */}
       <div className={styles.field}>
         <span>Category</span>
         <SegmentedControl<FoodCategory>
@@ -335,6 +335,7 @@ function FoodEditor({
             { value: 'other', label: 'Staple' },
             { value: 'fruit', label: 'Fruit' },
             { value: 'vegetable', label: 'Vegetable' },
+            { value: 'dairy', label: 'Dairy' },
           ]}
           value={form.category}
           onChange={(v) => set('category', v)}

@@ -31,13 +31,13 @@ interface SeedFood {
 }
 
 /**
- * Produce logged by weight: a wedge cut off a pumpkin has no natural portion,
- * so these carry no one-tap buttons — you put the piece on the scale and type
- * the grams. Values are per 100 g raw and edible (peeled/deseeded where that's
- * how you'd weigh it), rounded from USDA figures; edit any of them in the
- * library if your own numbers differ.
+ * Foods logged by weight: a wedge cut off a pumpkin or a slab of cheese has no
+ * natural portion, so these carry no one-tap buttons — you put the piece on the
+ * scale and type the grams. Produce values are per 100 g raw and edible
+ * (peeled/deseeded where that's how you'd weigh it), rounded from USDA figures;
+ * edit any of them in the library if your own numbers differ.
  */
-const PRODUCE: SeedFood[] = [
+const WEIGHED: SeedFood[] = [
   // ── Fruits ────────────────────────────────────────────────────────────────
   // Apple and Banana are already in the library (with the plan's own portions)
   // and scale to any weight from there, so they are not repeated here.
@@ -71,6 +71,23 @@ const PRODUCE: SeedFood[] = [
   vegetable('Beetroot (raw)', 43, 1.6, 10, 2.8),
   vegetable('Sweet potato (raw)', 86, 1.6, 20, 3),
   vegetable('Corn', 86, 3.3, 19, 2),
+
+  // ── Dairy ─────────────────────────────────────────────────────────────────
+  {
+    name: 'Venezuelan white cheese',
+    unit: 'g',
+    category: 'dairy',
+    basisQty: 100,
+    calories: 250,
+    proteinG: 15,
+    // Only calories and protein were given for this one; the rest stays blank
+    // rather than being back-calculated from the calorie figure.
+    carbsG: null,
+    fatG: null,
+    fiberG: null,
+    portions: [],
+    notes: 'Queso blanco fresco / llanero',
+  },
 ];
 
 function produce(
@@ -331,7 +348,7 @@ async function main() {
   await connectDb(config.mongoUri);
 
   const byName = new Map<string, Food>();
-  for (const seed of [...FOODS, ...PRODUCE]) {
+  for (const seed of [...FOODS, ...WEIGHED]) {
     const doc = await FoodModel.findOneAndUpdate(
       { name: seed.name },
       {
@@ -353,7 +370,7 @@ async function main() {
     ).lean();
     byName.set(seed.name, serializeFood(doc as Record<string, unknown>));
   }
-  console.log(`${FOODS.length} foods + ${PRODUCE.length} fruits/vegetables upserted`);
+  console.log(`${FOODS.length} staples + ${WEIGHED.length} weighed foods upserted`);
 
   const foods = [...byName.values()];
   let dayTotal = 0;
