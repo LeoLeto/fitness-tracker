@@ -5,7 +5,7 @@ import { SegmentedControl } from '../components/SegmentedControl';
 import { useToast } from '../components/Toast';
 import { useApi } from '../hooks/useApi';
 import { api } from '../services/api';
-import { Food, FoodUnit, FoodWithPortions, ResolvedMealTemplate } from '../types';
+import { Food, FoodCategory, FoodUnit, FoodWithPortions, ResolvedMealTemplate } from '../types';
 import { parseDecimal } from '../utils/numeric';
 import pageStyles from '../styles/page.module.scss';
 import styles from './FoodLibraryPage.module.scss';
@@ -14,6 +14,7 @@ import styles from './FoodLibraryPage.module.scss';
 interface FoodForm {
   name: string;
   unit: FoodUnit;
+  category: FoodCategory;
   basisQty: string;
   calories: string;
   protein: string;
@@ -27,6 +28,7 @@ interface FoodForm {
 const EMPTY_FOOD: FoodForm = {
   name: '',
   unit: 'g',
+  category: 'other',
   basisQty: '100',
   calories: '',
   protein: '',
@@ -42,6 +44,7 @@ function formFromFood(food: Food): FoodForm {
   return {
     name: food.name,
     unit: food.unit,
+    category: food.category,
     basisQty: String(food.basisQty),
     calories: String(food.calories),
     protein: s(food.proteinG),
@@ -79,6 +82,7 @@ function foodFromForm(form: FoodForm): Partial<Food> | string {
   return {
     name: form.name.trim(),
     unit: form.unit,
+    category: form.category,
     basisQty,
     calories: Math.round(calories),
     ...(macros as Record<string, number | null>),
@@ -319,6 +323,22 @@ function FoodEditor({
             ariaLabel="Reference amount"
           />
         </label>
+      </div>
+
+      {/* Fruit and vegetables get their own weigh-it-and-log-it tab in quick
+          add; everything else is logged from its portions. */}
+      <div className={styles.field}>
+        <span>Category</span>
+        <SegmentedControl<FoodCategory>
+          ariaLabel="Category"
+          options={[
+            { value: 'other', label: 'Staple' },
+            { value: 'fruit', label: 'Fruit' },
+            { value: 'vegetable', label: 'Vegetable' },
+          ]}
+          value={form.category}
+          onChange={(v) => set('category', v)}
+        />
       </div>
 
       <div className={styles.nutritionRow}>

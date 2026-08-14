@@ -198,6 +198,7 @@ const WORKOUT_CSV_HEADER = [
   'exercise_order',
   'order_moved',
   'variation',
+  'swapped_from',
   'set_number',
   'weight_kg',
   'reps',
@@ -225,7 +226,7 @@ export function buildWorkoutsCsv(workouts: Workout[]): string {
     if (w.type === 'cardio' || w.exercises.length === 0) {
       rows.push([
         ...base,
-        '', '', '', '', '', '', '', '', '', '', '', '',
+        '', '', '', '', '', '', '', '', '', '', '', '', '',
         w.notes ?? '',
         w.dateInferred ? 'yes' : '',
       ]);
@@ -239,6 +240,7 @@ export function buildWorkoutsCsv(workouts: Workout[]): string {
           String(ex.order + 1),
           ex.orderMoved ?? '',
           ex.variation ?? '',
+          ex.swappedFrom ?? '',
           String(i + 1),
           s.weightKg != null ? String(s.weightKg) : '',
           String(s.reps),
@@ -259,7 +261,8 @@ export function buildWorkoutsCsv(workouts: Workout[]): string {
 
 const NOTATION_LEGEND =
   'Set notation: `weight xReps (RIR)` — `*` last rep with bad form, `?` rep count uncertain, ' +
-  '`🚨` set cut short by pain, `BW` bodyweight. `[⬆️/⬇️]` = exercise order swapped that day.';
+  '`🚨` set cut short by pain, `BW` bodyweight. `[⬆️/⬇️]` = exercise order swapped that day. ' +
+  '`(⇄ after X)` = the movement was abandoned mid-session and finished on this exercise instead.';
 
 function orderBadge(moved: 'up' | 'down' | null): string {
   if (moved === 'up') return ' [⬆️]';
@@ -290,7 +293,10 @@ export function buildWorkoutsMarkdown(workouts: Workout[]): string {
     for (const ex of ordered) {
       if (ex.sets.length === 0) continue;
       const variation = ex.variation ? ` (${ex.variation})` : '';
-      lines.push(`- ${ex.exerciseName}${variation}${orderBadge(ex.orderMoved)}: ${formatSets(ex.sets)}`);
+      const swapped = ex.swappedFrom ? ` (⇄ after ${ex.swappedFrom})` : '';
+      lines.push(
+        `- ${ex.exerciseName}${variation}${swapped}${orderBadge(ex.orderMoved)}: ${formatSets(ex.sets)}`
+      );
     }
     if (w.notes) lines.push(`- note: ${w.notes}`);
   }

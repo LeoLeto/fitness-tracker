@@ -1,4 +1,4 @@
-import { Food, MealTemplate, MealTemplateItem } from '../types';
+import { Food, FOOD_CATEGORIES, FoodCategory, MealTemplate, MealTemplateItem } from '../types';
 import { ValidationResult } from './validation';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -33,6 +33,11 @@ export function validateFood(body: unknown): ValidationResult<Omit<Food, 'id'>> 
 
   const unit = b.unit === 'unit' || b.unit === 'g' || b.unit === 'ml' ? b.unit : null;
   if (!unit) errors.push('unit must be "unit", "g" or "ml"');
+
+  // Absent means "not categorised", not an error — most foods are staples.
+  const category = FOOD_CATEGORIES.includes(b.category as FoodCategory)
+    ? (b.category as FoodCategory)
+    : 'other';
 
   const basisQty = num(b.basisQty, 0.01, 10000);
   if (basisQty === null || basisQty === 'invalid') {
@@ -73,6 +78,7 @@ export function validateFood(body: unknown): ValidationResult<Omit<Food, 'id'>> 
     value: {
       name: name as string,
       unit: unit as Food['unit'],
+      category,
       basisQty: basisQty as number,
       calories: calories as number,
       proteinG: macros.proteinG as number | null,

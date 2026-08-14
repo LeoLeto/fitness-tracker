@@ -54,6 +54,13 @@ export interface WorkoutExercise {
   orderMoved: 'up' | 'down' | null;
   /** Session-specific variation, e.g. "w/step", "barbell", "chest supported". */
   variation: string | null;
+  /**
+   * The exercise this one replaced mid-session, e.g. starting cable low rows,
+   * hurting your back and finishing the movement on the chest-supported row.
+   * Both exercises keep the sets actually performed; this records the link, so
+   * a two-set session isn't later read as a bad day.
+   */
+  swappedFrom: string | null;
   sets: WorkoutSet[];
 }
 
@@ -70,6 +77,19 @@ export interface Workout {
   /** True for history imported from notes where only month+weekday were known. */
   dateInferred: boolean;
   exercises: WorkoutExercise[];
+}
+
+/**
+ * The last time one exercise was performed, wherever it happened. Looked up per
+ * exercise rather than per session, so a movement skipped last time still shows
+ * what there is to beat.
+ */
+export interface LastPerformance {
+  exerciseName: string;
+  date: string;
+  routine: Routine | null;
+  variation: string | null;
+  sets: WorkoutSet[];
 }
 
 // ── Analytics ──────────────────────────────────────────────────────────────────

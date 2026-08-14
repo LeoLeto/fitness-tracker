@@ -14,11 +14,12 @@ import { config } from '../config';
 import { connectDb, disconnectDb } from '../db';
 import { FoodModel, MealTemplateModel, serializeFood } from '../models/Food';
 import { resolveTemplate } from '../services/foodLibrary';
-import { Food, FoodUnit } from '../types';
+import { Food, FoodCategory, FoodUnit } from '../types';
 
 interface SeedFood {
   name: string;
   unit: FoodUnit;
+  category?: FoodCategory;
   basisQty: number;
   calories: number;
   proteinG: number | null;
@@ -27,6 +28,97 @@ interface SeedFood {
   fiberG: number | null;
   portions: number[];
   notes?: string;
+}
+
+/**
+ * Produce logged by weight: a wedge cut off a pumpkin has no natural portion,
+ * so these carry no one-tap buttons — you put the piece on the scale and type
+ * the grams. Values are per 100 g raw and edible (peeled/deseeded where that's
+ * how you'd weigh it), rounded from USDA figures; edit any of them in the
+ * library if your own numbers differ.
+ */
+const PRODUCE: SeedFood[] = [
+  // ── Fruits ────────────────────────────────────────────────────────────────
+  // Apple and Banana are already in the library (with the plan's own portions)
+  // and scale to any weight from there, so they are not repeated here.
+  fruit('Orange', 47, 0.9, 12, 2.4, 'Peeled weight'),
+  fruit('Mandarin', 53, 0.8, 13, 1.8, 'Peeled weight'),
+  fruit('Grapes', 69, 0.7, 18, 0.9),
+  fruit('Strawberries', 32, 0.7, 7.7, 2),
+  fruit('Blueberries', 57, 0.7, 14, 2.4),
+  fruit('Watermelon', 30, 0.6, 7.6, 0.4, 'Flesh only'),
+  fruit('Melon', 34, 0.8, 8.2, 0.9, 'Flesh only'),
+  fruit('Pear', 57, 0.4, 15, 3.1),
+  fruit('Pineapple', 50, 0.5, 13, 1.4, 'Flesh only'),
+  fruit('Kiwi', 61, 1.1, 15, 3, 'Peeled weight'),
+  fruit('Peach', 39, 0.9, 10, 1.5),
+  fruit('Avocado', 160, 2, 8.5, 6.7, 'Flesh only'),
+
+  // ── Vegetables ────────────────────────────────────────────────────────────
+  vegetable('Pumpkin (raw)', 26, 1, 6.5, 0.5, 'Flesh only, deseeded'),
+  vegetable('Tomato', 18, 0.9, 3.9, 1.2),
+  vegetable('Cucumber', 15, 0.7, 3.6, 0.5),
+  vegetable('Lettuce', 15, 1.4, 2.9, 1.3),
+  vegetable('Broccoli (raw)', 34, 2.8, 6.6, 2.6),
+  vegetable('Cauliflower (raw)', 25, 1.9, 5, 2),
+  vegetable('Bell pepper', 26, 1, 6, 2.1),
+  vegetable('Onion', 40, 1.1, 9.3, 1.7),
+  vegetable('Zucchini', 17, 1.2, 3.1, 1),
+  vegetable('Aubergine', 25, 1, 5.9, 3),
+  vegetable('Spinach (raw)', 23, 2.9, 3.6, 2.2),
+  vegetable('Mushrooms', 22, 3.1, 3.3, 1),
+  vegetable('Green beans', 31, 1.8, 7, 3.4),
+  vegetable('Beetroot (raw)', 43, 1.6, 10, 2.8),
+  vegetable('Sweet potato (raw)', 86, 1.6, 20, 3),
+  vegetable('Corn', 86, 3.3, 19, 2),
+];
+
+function produce(
+  category: FoodCategory,
+  name: string,
+  calories: number,
+  proteinG: number,
+  carbsG: number,
+  fiberG: number,
+  notes?: string
+): SeedFood {
+  return {
+    name,
+    unit: 'g',
+    category,
+    basisQty: 100,
+    calories,
+    proteinG,
+    carbsG,
+    // Fat is negligible in produce (avocado aside) and the plan doesn't track
+    // it — left null rather than written down as zero.
+    fatG: null,
+    fiberG,
+    portions: [],
+    notes,
+  };
+}
+
+function fruit(
+  name: string,
+  calories: number,
+  proteinG: number,
+  carbsG: number,
+  fiberG: number,
+  notes?: string
+): SeedFood {
+  return produce('fruit', name, calories, proteinG, carbsG, fiberG, notes);
+}
+
+function vegetable(
+  name: string,
+  calories: number,
+  proteinG: number,
+  carbsG: number,
+  fiberG: number,
+  notes?: string
+): SeedFood {
+  return produce('vegetable', name, calories, proteinG, carbsG, fiberG, notes);
 }
 
 const FOODS: SeedFood[] = [
@@ -100,6 +192,7 @@ const FOODS: SeedFood[] = [
   {
     name: 'Potato (raw)',
     unit: 'g',
+    category: 'vegetable',
     basisQty: 200,
     calories: 154,
     proteinG: 4,
@@ -111,6 +204,7 @@ const FOODS: SeedFood[] = [
   {
     name: 'Carrots (raw)',
     unit: 'g',
+    category: 'vegetable',
     basisQty: 125,
     calories: 50,
     proteinG: 1,
@@ -122,6 +216,7 @@ const FOODS: SeedFood[] = [
   {
     name: 'Apple',
     unit: 'g',
+    category: 'fruit',
     basisQty: 180,
     calories: 90,
     proteinG: 0.5,
@@ -135,6 +230,7 @@ const FOODS: SeedFood[] = [
     // unit than the grams actually on the scale. 120 g ≈ one medium, peeled.
     name: 'Banana',
     unit: 'g',
+    category: 'fruit',
     basisQty: 120,
     calories: 105,
     proteinG: 1,
@@ -235,12 +331,13 @@ async function main() {
   await connectDb(config.mongoUri);
 
   const byName = new Map<string, Food>();
-  for (const seed of FOODS) {
+  for (const seed of [...FOODS, ...PRODUCE]) {
     const doc = await FoodModel.findOneAndUpdate(
       { name: seed.name },
       {
         $set: {
           unit: seed.unit,
+          category: seed.category ?? 'other',
           basisQty: seed.basisQty,
           calories: seed.calories,
           proteinG: seed.proteinG,
@@ -256,7 +353,7 @@ async function main() {
     ).lean();
     byName.set(seed.name, serializeFood(doc as Record<string, unknown>));
   }
-  console.log(`${FOODS.length} foods upserted`);
+  console.log(`${FOODS.length} foods + ${PRODUCE.length} fruits/vegetables upserted`);
 
   const foods = [...byName.values()];
   let dayTotal = 0;

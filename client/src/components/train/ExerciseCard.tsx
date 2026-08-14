@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../../services/api';
 import { PersonalBest, WorkoutSet } from '../../types';
 import { NumericInput } from '../fields';
 import { formatShort } from '../../utils/dates';
@@ -15,8 +14,8 @@ import {
   EditorExercise,
   EditorSet,
   emptyEditorSet,
-  setFromWorkout,
-  setToWorkout,
+  isSetComplete,
+  loggedSets,
 } from './editorTypes';
 import styles from './train.module.scss';
 
@@ -28,10 +27,15 @@ interface ExerciseCardProps {
   /** All-time best set of this exercise, or null if it has never been logged. */
   pr: PersonalBest | null;
   orderMoved: 'up' | 'down' | null;
+  expanded: boolean;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  /** The other exercises of the day — candidates for a mid-session swap. */
+  swapTargets: string[];
+  onToggle: () => void;
   onChange: (next: EditorExercise) => void;
   onMove: (direction: -1 | 1) => void;
+  onSwapTo: (targetName: string) => void;
 }
 
 const RIR_OPTIONS = [0, 1, 2, 3, 4];
@@ -42,63 +46,52 @@ export function ExerciseCard({
   date,
   pr,
   orderMoved,
+  expanded,
   canMoveUp,
   canMoveDown,
+  swapTargets,
+  onToggle,
   onChange,
   onMove,
+  onSwapTo,
 }: ExerciseCardProps) {
-  const [quickText, setQuickText] = useState('');
-  const [quickOpen, setQuickOpen] = useState(false);
-  const [quickWarnings, setQuickWarnings] = useState<string[]>([]);
-  const [expanded, setExpanded] = useState(exercise.sets.length > 0);
+  // Both start closed: the variation is a rare footnote, and a swap is rarer
+  // still. Neither earns permanent space in a row you fill in mid-set.
+  const [commentOpen, setCommentOpen] = useState(exercise.variation !== '');
+  const [swapOpen, setSwapOpen] = useState(false);
 
+  /**
+   * Applies a change to one set and, when the last row is filled in, opens the
+   * next one — logging a set and reaching for the next are the same action, so
+   * "+ set" was a tap between every set of every exercise.
+   */
   const updateSet = (i: number, patch: Partial<EditorSet>) => {
     const sets = exercise.sets.map((s, j) => (j === i ? { ...s, ...patch } : s));
+    const edited = sets[i];
+    const isLast = i === sets.length - 1;
+    const ready = isSetComplete(edited, exercise.isBodyweight) && edited.rir !== null;
+    if (isLast && ready) sets.push(emptyEditorSet(edited.weight));
     onChange({ ...exercise, sets });
   };
 
-  const addSet = () => {
-    const prev = exercise.sets[exercise.sets.length - 1];
-    onChange({ ...exercise, sets: [...exercise.sets, emptyEditorSet(prev?.weight ?? '')] });
-    setExpanded(true);
+  /**
+   * Opens `count` more rows, each carrying the weight of the one before it —
+   * the usual case is the same load again, and a ghost placeholder still shows
+   * last session's number in the reps field.
+   */
+  const addSets = (count = 1) => {
+    const sets = [...exercise.sets];
+    for (let n = 0; n < count; n++) {
+      sets.push(emptyEditorSet(sets[sets.length - 1]?.weight ?? ''));
+    }
+    onChange({ ...exercise, sets });
   };
 
   const removeSet = (i: number) => {
     onChange({ ...exercise, sets: exercise.sets.filter((_, j) => j !== i) });
   };
 
-  const copyLast = () => {
-    if (!exercise.last) return;
-    onChange({
-      ...exercise,
-      sets: exercise.last.sets.map(setFromWorkout),
-      variation: exercise.last.variation ?? exercise.variation,
-    });
-    setExpanded(true);
-  };
-
-  const parseQuick = async () => {
-    if (quickText.trim() === '') return;
-    try {
-      const parsed = await api.parseSetText(quickText, exercise.isBodyweight);
-      const warnings = [...parsed.warnings];
-      if (parsed.orderMoved) {
-        warnings.push('Order swap noted — use the ↑↓ arrows to reorder the exercise.');
-      }
-      onChange({
-        ...exercise,
-        sets: parsed.sets.map(setFromWorkout),
-        variation: parsed.variation ?? exercise.variation,
-      });
-      setQuickWarnings(warnings);
-      setExpanded(true);
-      if (parsed.sets.length > 0) setQuickText('');
-    } catch {
-      setQuickWarnings(['Could not parse that line.']);
-    }
-  };
-
-  const loggedSets = exercise.sets.length;
+  const done = loggedSets(exercise);
 
   /**
    * Where this session stands right now — recomputed as you type, so beating a
@@ -106,10 +99,7 @@ export function ExerciseCard({
    */
   const beat = useMemo(() => {
     if (pr === null) return null;
-    const sets = exercise.sets
-      .map(setToWorkout)
-      .filter((s): s is WorkoutSet => s !== 'invalid' && s !== 'empty');
-    const live = bestPerformance(sets);
+    const live = bestPerformance(done);
     if (live === null || !beatsPerformance(live, pr)) return null;
     return {
       metric: formatPerformance(live),
@@ -118,23 +108,31 @@ export function ExerciseCard({
           ? `+${(live.e1rm - pr.e1rm).toFixed(1)} kg`
           : `+${live.effectiveReps - pr.effectiveReps} reps`,
     };
-  }, [exercise.sets, pr]);
+  }, [done, pr]);
+
+  // Whatever is left of last session below the rows already on screen, so the
+  // whole of last time is visible without remembering how it ended.
+  const remainingGhosts: WorkoutSet[] = (exercise.last?.sets ?? []).slice(exercise.sets.length);
 
   return (
-    <section className={`card ${styles.exercise}`}>
+    <section className={`${styles.exercise} ${expanded ? styles.exerciseOpen : ''}`}>
       <header className={styles.exerciseHeader}>
         <button
           type="button"
           className={styles.exerciseTitle}
-          onClick={() => setExpanded((e) => !e)}
+          onClick={onToggle}
           aria-expanded={expanded}
         >
           <span className={styles.exerciseName}>
             {exercise.exerciseName}
             {orderMoved === 'up' && <span className={styles.orderBadge}> ⬆️</span>}
             {orderMoved === 'down' && <span className={styles.orderBadge}> ⬇️</span>}
+            {done.length > 0 && <span className={styles.setCount}>{done.length}</span>}
           </span>
-          {exercise.setupNotes && (
+          {exercise.swappedFrom && (
+            <span className={styles.swapBadge}>⇄ after {exercise.swappedFrom}</span>
+          )}
+          {expanded && exercise.setupNotes && (
             <span className={styles.setupNotes}>{exercise.setupNotes}</span>
           )}
         </button>
@@ -167,47 +165,56 @@ export function ExerciseCard({
         </div>
       </header>
 
-      {exercise.last && (
-        <button type="button" className={styles.lastLine} onClick={copyLast}>
-          <span className={styles.lastLabel}>last ({formatShort(exercise.last.date)}):</span>{' '}
-          {formatSets(exercise.last.sets)}
-          {exercise.last.variation ? ` (${exercise.last.variation})` : ''}
-          <span className={styles.copyHint}>⟳ tap to copy</span>
-        </button>
-      )}
-
-      {pr && (
-        <p className={beat ? `${styles.prLine} ${styles.prLineBeat}` : styles.prLine}>
-          <span className={styles.prLabel}>
-            🏆 {pr.date === date ? 'PR this session' : 'PR'}
-          </span>{' '}
-          {formatPerformance(pr)}
-          <span className={styles.prSet}>
-            {' · '}
-            {formatSet(pr)}
-            {pr.badForm && ' ✱'}
-            {pr.pain && ' 🚨'}
-            {pr.date !== date && ` · ${formatShort(pr.date)}`}
-          </span>
-          {beat && (
-            <span className={styles.prBeat}>
-              new PR {beat.metric} ({beat.gain})
-            </span>
-          )}
+      {/* Collapsed, an exercise is just its numbers — the same notation the
+          rest of the app and the exports use. */}
+      {!expanded && done.length > 0 && (
+        <p className={styles.collapsedSummary}>
+          {formatSets(done)}
+          {exercise.variation !== '' && <span className={styles.collapsedVariation}> ({exercise.variation})</span>}
         </p>
       )}
 
       {expanded && (
         <>
+          {exercise.last && (
+            <p className={styles.lastLine}>
+              <span className={styles.lastLabel}>last ({formatShort(exercise.last.date)}):</span>{' '}
+              {formatSets(exercise.last.sets)}
+              {exercise.last.variation ? ` (${exercise.last.variation})` : ''}
+            </p>
+          )}
+
+          {pr && (
+            <p className={beat ? `${styles.prLine} ${styles.prLineBeat}` : styles.prLine}>
+              <span className={styles.prLabel}>
+                🏆 {pr.date === date ? 'PR this session' : 'PR'}
+              </span>{' '}
+              {formatPerformance(pr)}
+              <span className={styles.prSet}>
+                {' · '}
+                {formatSet(pr)}
+                {pr.badForm && ' ✱'}
+                {pr.pain && ' 🚨'}
+                {pr.date !== date && ` · ${formatShort(pr.date)}`}
+              </span>
+              {beat && (
+                <span className={styles.prBeat}>
+                  new PR {beat.metric} ({beat.gain})
+                </span>
+              )}
+            </p>
+          )}
+
           {exercise.sets.length > 0 && (
             <div className={styles.setsHeader}>
-              <span>{exercise.isBodyweight ? 'kg (opt.)' : 'kg'}</span>
+              <span>{exercise.isBodyweight ? 'kg*' : 'kg'}</span>
               <span>reps</span>
               <span>RIR</span>
               <span>flags</span>
               <span />
             </div>
           )}
+
           {exercise.sets.map((s, i) => {
             // Ghost of the same set number last time round: an empty field shows
             // what you did then, so matching or beating it needs no scrolling.
@@ -299,55 +306,86 @@ export function ExerciseCard({
             );
           })}
 
+          {/* The rest of last session, in line with the rows above it: tapping
+              one opens a real row already carrying that weight. */}
+          {remainingGhosts.map((s, i) => (
+            <button
+              key={`ghost-${i}`}
+              type="button"
+              className={styles.ghostRow}
+              // Tapping the third ghost opens rows up to the third, not one —
+              // the tap says "I'm on that set", not "give me one more".
+              onClick={() => addSets(i + 1)}
+            >
+              <span className={styles.ghostIndex}>{exercise.sets.length + i + 1}</span>
+              <span className={styles.ghostSet}>{formatSets([s])}</span>
+              <span className={styles.ghostHint}>last time</span>
+            </button>
+          ))}
+
           <div className={styles.exerciseActions}>
-            <button type="button" className={styles.smallBtn} onClick={addSet}>
+            <button type="button" className={styles.smallBtn} onClick={() => addSets()}>
               + set
             </button>
             <button
               type="button"
               className={styles.smallBtn}
-              onClick={() => setQuickOpen((o) => !o)}
+              aria-expanded={commentOpen}
+              onClick={() => setCommentOpen((o) => !o)}
             >
-              quick text
+              {exercise.variation !== '' ? '✎ comment' : '+ comment'}
             </button>
+            {swapTargets.length > 0 && (
+              <button
+                type="button"
+                className={styles.smallBtn}
+                aria-expanded={swapOpen}
+                onClick={() => setSwapOpen((o) => !o)}
+              >
+                ⇄ swap
+              </button>
+            )}
+          </div>
+
+          {commentOpen && (
             <input
               type="text"
               className={styles.variation}
               value={exercise.variation}
-              placeholder="variation (e.g. w/step, barbell)"
+              placeholder="variation or note (e.g. w/step, barbell)"
               aria-label="Variation"
+              autoFocus={exercise.variation === ''}
               onChange={(e) => onChange({ ...exercise, variation: e.target.value })}
             />
-          </div>
+          )}
 
-          {quickOpen && (
-            <div className={styles.quickRow}>
-              <input
-                type="text"
-                value={quickText}
-                placeholder='e.g. 90 x7 (2 RIR) x7 (1 RIR) x8* (0 RIR)'
-                aria-label="Quick text entry"
-                onChange={(e) => setQuickText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    void parseQuick();
-                  }
-                }}
-              />
-              <button type="button" className={styles.smallBtn} onClick={() => void parseQuick()}>
-                Parse
-              </button>
+          {/* Abandoning a movement mid-exercise and finishing it on another one
+              is a real thing that happens; recording it keeps both partial
+              exercises honest instead of looking like two bad sessions. */}
+          {swapOpen && (
+            <div className={styles.swapPanel}>
+              <p className={styles.swapHint}>
+                Stopped this exercise and carried on with another one? Pick it — the sets
+                already logged here stay put.
+              </p>
+              <div className={styles.swapOptions}>
+                {swapTargets.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className={styles.swapOption}
+                    onClick={() => {
+                      setSwapOpen(false);
+                      onSwapTo(name);
+                    }}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
-          {quickWarnings.length > 0 && (
-            <p className={styles.quickWarnings}>{quickWarnings.join(' · ')}</p>
-          )}
         </>
-      )}
-
-      {!expanded && loggedSets > 0 && (
-        <p className={styles.collapsedSummary}>{loggedSets} sets logged</p>
       )}
     </section>
   );

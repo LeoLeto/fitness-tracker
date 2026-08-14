@@ -246,7 +246,14 @@ export function FoodPage() {
    * pre-add meal list rides along with the toast, so a mistap is one tap from
    * being reverted for the next 5 seconds.
    */
-  const addFromLibrary = async (added: Meal[]) => {
+  const addFromLibrary = async (chosen: Meal[]) => {
+    // Logged now, so stamped now. A template carries a planned time (04:15…)
+    // which is the plan's, not the day's; on a back-filled day that plan time
+    // is still better than nothing, but today's clock beats it.
+    const added: Meal[] =
+      date === todayStr()
+        ? chosen.map((m) => ({ ...m, time: currentTime() }))
+        : chosen;
     const label = added.length === 1 ? added[0].label || 'meal' : `${added.length} meals`;
     const addedKcal = added.reduce((acc, m) => acc + m.calories, 0);
     const appendRows = () => setRows((rs) => [...rs, ...added.map(editorFromMeal)]);
@@ -409,15 +416,7 @@ export function FoodPage() {
 
   return (
     <div className={pageStyles.page}>
-      <div className={pageStyles.pageHeader}>
-        <h1>Food</h1>
-      </div>
-
-      <DayNav
-        date={date}
-        onChange={(next) => setSearchParams({ date: next })}
-        sibling={<Link to={`/weigh?date=${date}`}>Weigh-in for this day →</Link>}
-      />
+      <DayNav date={date} onChange={(next) => setSearchParams({ date: next })} />
 
       {/* Running total for the day — the number that accumulates as meals are added. */}
       <section className={`card ${styles.totalCard}`}>
@@ -540,13 +539,10 @@ export function FoodPage() {
                   aria-label={`Meal ${i + 1} label`}
                   onChange={(e) => updateRow(row.key, { label: e.target.value })}
                 />
-                <input
-                  type="time"
-                  className={styles.mealTime}
-                  value={row.time}
-                  aria-label={`Meal ${i + 1} time`}
-                  onChange={(e) => updateRow(row.key, { time: e.target.value })}
-                />
+                {/* The time is stamped when the meal is logged rather than
+                    typed: it was always "now" anyway, and the field cost a row
+                    on every meal. It still shows, so a wrong one is visible. */}
+                {row.time !== '' && <span className={styles.mealTime}>{row.time}</span>}
                 <button
                   type="button"
                   className={styles.removeMeal}

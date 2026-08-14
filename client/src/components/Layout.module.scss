@@ -59,32 +59,57 @@
   right: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
   background: var(--surface);
   border-top: 1px solid var(--border);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: 6px 6px env(safe-area-inset-bottom);
 }
 
 .tab {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 7px 1px 5px;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 2px 5px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
   color: var(--text-faint);
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 500;
   min-width: 0;
 }
 
+// With no heading on the page, the tab bar is the only thing saying where you
+// are — so the current tab is filled, not merely tinted.
 .tabActive {
+  background: var(--surface-2);
   color: var(--accent-deep);
+  font-weight: 700;
+
+  // A rule across the top of the pill: legible even where the accent-on-surface
+  // tint is subtle (bright sunlight, low-contrast displays).
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 22%;
+    right: 22%;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--accent-deep);
+  }
 }
 
 .tabIcon {
-  font-size: 17px;
+  font-size: 19px;
   line-height: 1;
+}
+
+.tabActive .tabIcon {
+  transform: scale(1.08);
 }
 
 .tabLabel {

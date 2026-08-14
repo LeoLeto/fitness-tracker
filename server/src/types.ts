@@ -69,6 +69,15 @@ export interface Profile {
 export type FoodUnit = 'unit' | 'g' | 'ml';
 
 /**
+ * Produce is grouped apart from staples because it is logged differently: you
+ * cut a wedge of pumpkin, put it on the scale, and the weight is whatever it
+ * is — there is no sensible one-tap portion to offer.
+ */
+export type FoodCategory = 'fruit' | 'vegetable' | 'other';
+
+export const FOOD_CATEGORIES: FoodCategory[] = ['fruit', 'vegetable', 'other'];
+
+/**
  * A reusable food with its nutrition per `basisQty` units, plus the portion
  * sizes worth a one-tap button (e.g. skimmed milk in 200 ml and 300 ml).
  * Macros left as `null` are simply not recorded for that food.
@@ -77,6 +86,7 @@ export interface Food {
   id: string;
   name: string;
   unit: FoodUnit;
+  category: FoodCategory;
   basisQty: number;
   calories: number;
   proteinG: number | null;

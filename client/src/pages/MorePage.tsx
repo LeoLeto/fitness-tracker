@@ -2,7 +2,11 @@ import { Link } from 'react-router-dom';
 import pageStyles from '../styles/page.module.scss';
 import styles from './MorePage.module.scss';
 
+// Home and Stats moved here from the tab bar: they are read now and then, not
+// on every session, and the three daily logs deserve the width.
 const LINKS = [
+  { to: '/', label: 'Home', desc: 'Today at a glance — weight, calories, trend', icon: '◫' },
+  { to: '/analysis', label: 'Stats', desc: 'Charts, trend and maintenance estimate', icon: '∿' },
   { to: '/history', label: 'History', desc: 'All daily entries — tap to edit', icon: '☰' },
   { to: '/foods', label: 'Food library', desc: 'Foods, portions and meal templates', icon: '🍽' },
   { to: '/weekly', label: 'Weekly Review', desc: 'Week-by-week summaries', icon: '▤' },
@@ -13,9 +17,6 @@ const LINKS = [
 export function MorePage() {
   return (
     <div className={pageStyles.page}>
-      <div className={pageStyles.pageHeader}>
-        <h1>More</h1>
-      </div>
       <div className={styles.list}>
         {LINKS.map((link) => (
           <Link key={link.to} to={link.to} className={`card ${styles.item}`}>

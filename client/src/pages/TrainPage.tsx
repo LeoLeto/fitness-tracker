@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DayNav } from '../components/DayNav';
 import { NumericInput } from '../components/fields';
@@ -8,12 +8,14 @@ import {
   buildWorkoutExercises,
   editorFromWorkout,
   EditorExercise,
+  emptyEditorSet,
+  loggedSets,
   orderMovedFor,
 } from '../components/train/editorTypes';
 import { useToast } from '../components/Toast';
 import { useApi } from '../hooks/useApi';
 import { api } from '../services/api';
-import { Workout } from '../types';
+import { LastPerformance, Workout } from '../types';
 import { addDays, formatMedium, todayStr } from '../utils/dates';
 import { parseDecimal } from '../utils/numeric';
 import { ROUTINE_ORDER, routineLabel, workoutSummary } from '../utils/workouts';
@@ -21,6 +23,14 @@ import pageStyles from '../styles/page.module.scss';
 import styles from '../components/train/train.module.scss';
 
 const LAST_ROUTINE_KEY = 'fitness-tracker-last-routine';
+
+/**
+ * Long enough that a burst of taps (weight, reps, RIR) is one request, short
+ * enough that putting the phone down mid-set never leaves anything unsaved.
+ */
+const AUTOSAVE_DELAY_MS = 900;
+
+type SaveState = 'clean' | 'pending' | 'saving' | 'saved' | 'error';
 
 export function TrainPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -69,9 +79,10 @@ export function TrainPage() {
   // ── Strength editor state ────────────────────────────────────────────────
   const [editor, setEditor] = useState<EditorExercise[]>([]);
   const [existing, setExisting] = useState<Workout | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>('clean');
   const [manageOpen, setManageOpen] = useState(false);
 
   const isCardio = routine === 'cardio';
@@ -82,16 +93,24 @@ export function TrainPage() {
     setLoading(true);
     Promise.all([
       api.listWorkouts({ from: date, to: date, routine, type: 'strength' }),
-      api.getLastWorkout(routine, date),
+      api.getLastByExercise(date),
     ])
-      .then(([todays, last]) => {
+      .then(([todays, lastRecords]) => {
         if (cancelled) return;
         const workout = todays[0] ?? null;
         const catalog = (allExercises.data ?? [])
           .filter((e) => e.routine === routine && !e.archived)
           .sort((a, b) => a.orderIndex - b.orderIndex);
+        const lastByName = new Map<string, LastPerformance>(
+          lastRecords.map((r) => [r.exerciseName.trim().toLowerCase(), r])
+        );
+        const next = editorFromWorkout(workout, catalog, lastByName);
+        sessionKeyRef.current = `${date}|${routine}`;
+        savedPayloadRef.current = JSON.stringify(buildWorkoutExercises(next).exercises);
         setExisting(workout);
-        setEditor(editorFromWorkout(workout, catalog, last));
+        setEditor(next);
+        setOpenIndex(null);
+        setSaveState('clean');
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -106,46 +125,160 @@ export function TrainPage() {
 
   const moved = orderMovedFor(editor);
 
+  // ── Autosave ─────────────────────────────────────────────────────────────
+  // Nothing in a gym is a good moment to remember to press Save, so every edit
+  // persists on its own. A save sends the whole session, so overlapping ones
+  // could land out of order: a single in-flight save at a time, with the latest
+  // state re-sent afterwards if it moved on meanwhile.
+  // Read through refs, not through the closure: `persist` has to keep the same
+  // identity across renders or the debounce timer below is cleared and restarted
+  // on every one of them, and a save in flight ends up sent twice.
+  const editorRef = useRef(editor);
+  editorRef.current = editor;
+  const existingRef = useRef<Workout | null>(existing);
+  existingRef.current = existing;
+  const savingRef = useRef(false);
+  const resaveRef = useRef(false);
+  /** What the server already holds, so identical state is never re-sent. */
+  const savedPayloadRef = useRef<string>('');
+  /**
+   * The day+routine currently on screen. A save started before you swapped days
+   * still completes — its response just must not be applied to the day you
+   * swapped to, or "Delete this session" would point at the wrong workout.
+   */
+  const sessionKeyRef = useRef('');
+
+  const reloadRecent = recent.reload;
+  const reloadRecords = records.reload;
+
+  const persist = useCallback(async () => {
+    if (savingRef.current) {
+      resaveRef.current = true;
+      return;
+    }
+    const { exercises, errors } = buildWorkoutExercises(editorRef.current);
+    if (errors.length > 0) {
+      setError(errors.join(' · '));
+      setSaveState('error');
+      return;
+    }
+    setError(null);
+    // Clearing every set doesn't silently delete the session — "Delete this
+    // session" is the deliberate way to do that.
+    if (exercises.length === 0) {
+      setSaveState('clean');
+      return;
+    }
+    const payload = JSON.stringify(exercises);
+    if (payload === savedPayloadRef.current) {
+      setSaveState('saved');
+      return;
+    }
+
+    savingRef.current = true;
+    setSaveState('saving');
+    const previous = existingRef.current;
+    const key = `${date}|${routine}`;
+    try {
+      const saved = await api.saveWorkout({
+        date,
+        type: 'strength',
+        routine,
+        cardioType: null,
+        durationMin: previous?.durationMin ?? null,
+        notes: previous?.notes ?? null,
+        dateInferred: false,
+        exercises,
+      });
+      // Only the first save of a day changes the lists below — refetching 60
+      // days of history after every set would be a lot of phone data for a
+      // section you're not looking at.
+      if (previous === null) {
+        reloadRecent();
+        reloadRecords();
+      }
+      if (sessionKeyRef.current !== key) return; // the day moved on; it's saved, that's enough
+      savedPayloadRef.current = payload;
+      setExisting(saved);
+      setSaveState('saved');
+    } catch (err) {
+      if (sessionKeyRef.current !== key) return;
+      setError(err instanceof Error ? err.message : 'Save failed');
+      setSaveState('error');
+    } finally {
+      savingRef.current = false;
+      // Edits that landed mid-flight go out now; if they amounted to nothing,
+      // the payload check above makes this a no-op.
+      if (resaveRef.current) {
+        resaveRef.current = false;
+        void persist();
+      }
+    }
+  }, [date, routine, reloadRecent, reloadRecords]);
+
+  useEffect(() => {
+    if (isCardio || loading) return;
+    // Expanding a card or typing a half-set changes the editor without changing
+    // what the session amounts to — comparing the payload keeps those free.
+    const { exercises, errors } = buildWorkoutExercises(editor);
+    if (errors.length === 0 && JSON.stringify(exercises) === savedPayloadRef.current) return;
+    setSaveState((s) => (s === 'saving' ? s : 'pending'));
+    const timer = window.setTimeout(() => void persist(), AUTOSAVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [editor, isCardio, loading, persist]);
+
+  const updateExercise = (i: number, next: EditorExercise) =>
+    setEditor((list) => list.map((e, j) => (j === i ? next : e)));
+
+  /**
+   * Only one exercise is open at a time: you do them one after another, and a
+   * screen of collapsed cards is a screen you can see the whole session on.
+   * Opening one with no sets starts it off with a row ready to type into.
+   */
+  const toggleExercise = (i: number) => {
+    setOpenIndex((current) => (current === i ? null : i));
+    setEditor((list) =>
+      list.map((e, j) =>
+        j === i && openIndex !== i && e.sets.length === 0
+          ? { ...e, sets: [emptyEditorSet()] }
+          : e
+      )
+    );
+  };
+
   const moveExercise = (i: number, dir: -1 | 1) => {
     const j = i + dir;
     if (j < 0 || j >= editor.length) return;
     const next = [...editor];
     [next[i], next[j]] = [next[j], next[i]];
     setEditor(next);
+    setOpenIndex((current) => (current === i ? j : current === j ? i : current));
   };
 
-  const save = async () => {
-    const { exercises, errors } = buildWorkoutExercises(editor);
-    if (errors.length > 0) {
-      setError(errors.join(' · '));
-      return;
-    }
-    if (exercises.length === 0) {
-      setError('Nothing to save yet — log at least one set.');
-      return;
-    }
-    setError(null);
-    setSaving(true);
-    try {
-      await api.saveWorkout({
-        date,
-        type: 'strength',
-        routine,
-        cardioType: null,
-        durationMin: existing?.durationMin ?? null,
-        notes: existing?.notes ?? null,
-        dateInferred: false,
-        exercises,
-      });
-      show(`${routineLabel(routine)} saved for ${formatMedium(date)} ✓`);
-      recent.reload();
-      records.reload(); // this session may have set a new best
-      setExisting((prev) => prev ?? ({} as Workout)); // mark as saved
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed');
-    } finally {
-      setSaving(false);
-    }
+  /**
+   * A movement abandoned mid-exercise (a set hurt, a machine gave out) and
+   * finished on another one. The replacement moves in directly after it, keeps
+   * a link back to what it replaced, and opens ready for the next set — both
+   * exercises keep exactly the sets that were actually performed.
+   */
+  const swapTo = (fromIndex: number, targetName: string) => {
+    const from = editor[fromIndex];
+    const targetIndex = editor.findIndex((e) => e.exerciseName === targetName);
+    if (!from || targetIndex === -1) return;
+
+    const target: EditorExercise = {
+      ...editor[targetIndex],
+      swappedFrom: from.exerciseName,
+      sets:
+        editor[targetIndex].sets.length > 0 ? editor[targetIndex].sets : [emptyEditorSet()],
+    };
+
+    const rest = editor.filter((_, i) => i !== targetIndex);
+    const insertAt = rest.findIndex((e) => e === from) + 1;
+    const next = [...rest.slice(0, insertAt), target, ...rest.slice(insertAt)];
+    setEditor(next);
+    setOpenIndex(insertAt);
+    show(`Swapped to ${targetName}`);
   };
 
   const deleteWorkout = async () => {
@@ -163,6 +296,7 @@ export function TrainPage() {
   const [cardioType, setCardioType] = useState('');
   const [cardioDuration, setCardioDuration] = useState('');
   const [cardioNotes, setCardioNotes] = useState('');
+  const [savingCardio, setSavingCardio] = useState(false);
 
   const cardioForDay = (recent.data ?? []).filter(
     (w) => w.type === 'cardio' && w.date === date
@@ -175,7 +309,7 @@ export function TrainPage() {
       return;
     }
     setError(null);
-    setSaving(true);
+    setSavingCardio(true);
     try {
       await api.saveWorkout({
         date,
@@ -195,7 +329,7 @@ export function TrainPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
     } finally {
-      setSaving(false);
+      setSavingCardio(false);
     }
   };
 
@@ -203,41 +337,54 @@ export function TrainPage() {
     .sort((a, b) => (a.date > b.date ? -1 : 1))
     .slice(0, 8);
 
+  const saveLabel: Record<SaveState, string> = {
+    clean: '',
+    pending: '• unsaved',
+    saving: 'saving…',
+    saved: 'saved ✓',
+    error: 'not saved',
+  };
+
   return (
     <div className={pageStyles.page}>
-      <div className={pageStyles.pageHeader}>
-        <h1>Train</h1>
-      </div>
+      <DayNav date={date} onChange={(next) => setParams({ date: next })} />
 
-      <DayNav
-        date={date}
-        onChange={(next) => setParams({ date: next })}
-        hint={
-          !isCardio && existing ? (
-            <span className={styles.savedBadge}> · editing saved session</span>
-          ) : null
-        }
-      />
-
-      <div className={styles.routineChips} role="group" aria-label="Routine">
-        {routines.map((r) => (
+      <div className={styles.routineBar}>
+        <div className={styles.routineChips} role="group" aria-label="Routine">
+          {routines.map((r) => (
+            <button
+              key={r}
+              type="button"
+              className={r === routine ? `${styles.routineChip} ${styles.routineChipOn}` : styles.routineChip}
+              onClick={() => setParams({ routine: r })}
+            >
+              {routineLabel(r)}
+            </button>
+          ))}
           <button
-            key={r}
+            key="cardio"
             type="button"
-            className={r === routine ? `${styles.routineChip} ${styles.routineChipOn}` : styles.routineChip}
-            onClick={() => setParams({ routine: r })}
+            className={isCardio ? `${styles.routineChip} ${styles.routineChipOn}` : styles.routineChip}
+            onClick={() => setParams({ routine: 'cardio' })}
           >
-            {routineLabel(r)}
+            Cardio
           </button>
-        ))}
-        <button
-          key="cardio"
-          type="button"
-          className={isCardio ? `${styles.routineChip} ${styles.routineChipOn}` : styles.routineChip}
-          onClick={() => setParams({ routine: 'cardio' })}
-        >
-          Cardio
-        </button>
+        </div>
+        {/* Autosave is silent when it works; the one thing worth showing is
+            whether what's on screen has reached the server. */}
+        {!isCardio && saveState !== 'clean' && (
+          <span
+            className={
+              saveState === 'error'
+                ? `${styles.saveState} ${styles.saveStateError}`
+                : styles.saveState
+            }
+            role="status"
+            aria-live="polite"
+          >
+            {saveLabel[saveState]}
+          </span>
+        )}
       </div>
 
       {error && <div className={pageStyles.error}>{error}</div>}
@@ -248,31 +395,34 @@ export function TrainPage() {
 
           {!loading && !allExercises.loading && (
             <>
-              {editor.map((ex, i) => (
-                <ExerciseCard
-                  key={`${ex.exerciseName}-${i}`}
-                  exercise={ex}
-                  routine={routine}
-                  date={date}
-                  pr={prByExercise.get(ex.exerciseName.trim().toLowerCase()) ?? null}
-                  orderMoved={moved[i]}
-                  canMoveUp={i > 0}
-                  canMoveDown={i < editor.length - 1}
-                  onChange={(next) =>
-                    setEditor(editor.map((e, j) => (j === i ? next : e)))
-                  }
-                  onMove={(dir) => moveExercise(i, dir)}
-                />
-              ))}
+              <div className={styles.exerciseList}>
+                {editor.map((ex, i) => (
+                  <ExerciseCard
+                    // Name, not index: a swap reorders the list, and a card
+                    // remounting there would drop what you were typing.
+                    key={ex.exerciseId ?? ex.exerciseName}
+                    exercise={ex}
+                    routine={routine}
+                    date={date}
+                    pr={prByExercise.get(ex.exerciseName.trim().toLowerCase()) ?? null}
+                    orderMoved={moved[i]}
+                    expanded={openIndex === i}
+                    canMoveUp={i > 0}
+                    canMoveDown={i < editor.length - 1}
+                    // Only exercises not yet logged: taking over from this one
+                    // is what a swap means, and an exercise already done that
+                    // day isn't a replacement for anything.
+                    swapTargets={editor
+                      .filter((other, j) => j !== i && loggedSets(other).length === 0)
+                      .map((other) => other.exerciseName)}
+                    onToggle={() => toggleExercise(i)}
+                    onChange={(next) => updateExercise(i, next)}
+                    onMove={(dir) => moveExercise(i, dir)}
+                    onSwapTo={(name) => swapTo(i, name)}
+                  />
+                ))}
+              </div>
 
-              <button
-                type="button"
-                className="btn btn--accent"
-                disabled={saving}
-                onClick={() => void save()}
-              >
-                {saving ? 'Saving…' : existing ? 'Update session' : 'Save session'}
-              </button>
               {existing?.id && (
                 <button type="button" className="btn btn--danger" onClick={() => void deleteWorkout()}>
                   Delete this session
@@ -334,7 +484,7 @@ export function TrainPage() {
           <button
             type="button"
             className="btn btn--accent"
-            disabled={saving}
+            disabled={savingCardio}
             onClick={() => void saveCardio()}
           >
             Save cardio

@@ -14,21 +14,23 @@ const DESKTOP_NAV = [
   { to: '/settings', label: 'Settings' },
 ];
 
+// Only the three things logged daily get a tab of their own; the dashboard and
+// the charts are read occasionally and live under "More".
 const MOBILE_TABS = [
-  { to: '/', label: 'Home', icon: '◫' },
   { to: '/weigh', label: 'Weigh', icon: '⚖' },
   { to: '/food', label: 'Food', icon: '🍽' },
   { to: '/train', label: 'Train', icon: '🏋' },
-  { to: '/analysis', label: 'Stats', icon: '∿' },
   { to: '/more', label: 'More', icon: '⋯' },
 ];
 
 // The "More" tab hosts these — keep it highlighted while inside any of them.
-const MORE_PATHS = ['/history', '/weekly', '/export', '/settings', '/foods'];
+// '/' is matched exactly: every path starts with it.
+const MORE_PATHS = ['/history', '/weekly', '/export', '/settings', '/foods', '/analysis'];
 
 export function Layout() {
   const location = useLocation();
-  const inMoreSection = MORE_PATHS.some((p) => location.pathname.startsWith(p));
+  const inMoreSection =
+    location.pathname === '/' || MORE_PATHS.some((p) => location.pathname.startsWith(p));
 
   return (
     <div className={styles.shell}>
@@ -63,12 +65,14 @@ export function Layout() {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === '/'}
             className={({ isActive }) => {
               const active = isActive || (item.to === '/more' && inMoreSection);
               return active ? `${styles.tab} ${styles.tabActive}` : styles.tab;
             }}
           >
+            {/* The page title used to be repeated as a heading at the top of
+                every page; the tab carries that job on its own now, so it has
+                to be unmistakable — filled pill, accent text, top rule. */}
             <span className={styles.tabIcon} aria-hidden="true">
               {item.icon}
             </span>

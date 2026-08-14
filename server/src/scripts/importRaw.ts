@@ -179,6 +179,7 @@ async function importWorkoutFile(filePath: string, year: number): Promise<void> 
         order: list.length,
         orderMoved: parsed.orderMoved,
         variation: parsed.variation,
+        swappedFrom: null,
         sets: parsed.sets,
       });
       byDate.set(dates[i], list);

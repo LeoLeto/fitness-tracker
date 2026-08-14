@@ -24,6 +24,7 @@ const workoutExerciseSchema = new Schema<WorkoutExercise>(
     order: { type: Number, required: true },
     orderMoved: { type: String, enum: ['up', 'down', null], default: null },
     variation: { type: String, default: null },
+    swappedFrom: { type: String, default: null },
     sets: { type: [setSchema], default: [] },
   },
   { _id: false }
@@ -70,6 +71,7 @@ export function serializeWorkout(doc: Record<string, unknown>): Workout {
       order: ex.order,
       orderMoved: ex.orderMoved ?? null,
       variation: ex.variation ?? null,
+      swappedFrom: ex.swappedFrom ?? null,
       sets: (ex.sets ?? []).map((s) => ({
         weightKg: s.weightKg ?? null,
         reps: s.reps,

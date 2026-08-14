@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { DayNav } from '../components/DayNav';
 import {
   NumberField,
-  TextField,
   TriState,
   TriStateField,
   boolToTriState,
@@ -99,14 +98,26 @@ export function WeighPage() {
     setError(null);
     setSaving(true);
     try {
+      // The time asked for a field and got typed in maybe twice — you weigh
+      // yourself and log it there and then, so the clock at save time is the
+      // answer. Back-filling a past day gets no time rather than a wrong one,
+      // and a time already recorded is never overwritten.
+      const weighedTime =
+        form.weighedTime.trim() !== ''
+          ? form.weighedTime
+          : date === todayStr()
+            ? currentTime()
+            : null;
+
       // PATCH: only the weigh-in slice of the day, so meals — and any notes or
       // training flags already recorded elsewhere — stay untouched.
       await api.patchEntry(date, {
         weightKg,
-        weighedTime: form.weighedTime.trim() === '' ? null : form.weighedTime,
+        weighedTime,
         beforeFood: triStateToBool(form.beforeFood),
         afterBowelMovement: triStateToBool(form.afterBowelMovement),
       });
+      if (weighedTime !== null) set('weighedTime', weighedTime);
       setExisting(weightKg !== null);
       allEntries.reload();
       show(`Saved ${formatMedium(date)} ✓`);
@@ -125,79 +136,55 @@ export function WeighPage() {
 
   return (
     <div className={pageStyles.page}>
-      <div className={pageStyles.pageHeader}>
-        <h1>Weigh-in</h1>
-      </div>
-
       <DayNav
         date={date}
         onChange={(next) => setSearchParams({ date: next })}
         hint={existing ? <span className={styles.savedBadge}> · saved</span> : null}
-        sibling={<Link to={`/food?date=${date}`}>Food for this day →</Link>}
       />
 
+      {/* One card, one screen: weight, the two conditions and the button, with
+          nothing between them that needs scrolling past at 5am. */}
       <form
-        className={styles.form}
+        className={`card ${styles.form}`}
         onSubmit={(e) => {
           e.preventDefault();
           void save();
         }}
       >
-        <section className={`card ${styles.section}`}>
-          <NumberField
-            big
-            label="Body weight"
-            unit="kg"
-            value={form.weight}
-            onChange={(v) => set('weight', v)}
-            placeholder={previous?.weightKg != null ? String(previous.weightKg) : 'e.g. 63.7'}
-            mode="decimal"
-          />
-          {previous?.weightKg != null && (
-            <p className={styles.previous}>
-              Previous: {fmtKg(previous.weightKg)} on {formatShort(previous.date)}
-              {delta !== null && (
-                <span className={delta >= 0 ? styles.deltaUp : styles.deltaDown}>
-                  {' '}
-                  {delta >= 0 ? '+' : ''}
-                  {delta.toFixed(1)} kg
-                </span>
-              )}
-            </p>
-          )}
-        </section>
+        <NumberField
+          big
+          label="Body weight"
+          unit="kg"
+          value={form.weight}
+          onChange={(v) => set('weight', v)}
+          placeholder={previous?.weightKg != null ? String(previous.weightKg) : 'e.g. 63.7'}
+          mode="decimal"
+        />
+        {previous?.weightKg != null && (
+          <p className={styles.previous}>
+            Previous: {fmtKg(previous.weightKg)} on {formatShort(previous.date)}
+            {delta !== null && (
+              <span className={delta >= 0 ? styles.deltaUp : styles.deltaDown}>
+                {' '}
+                {delta >= 0 ? '+' : ''}
+                {delta.toFixed(1)} kg
+              </span>
+            )}
+          </p>
+        )}
 
-        {/* Conditions are always visible — they are optional context, and a
-            measurement is never invalidated by leaving them blank. */}
-        <section className={`card ${styles.section}`}>
-          <h2 className={styles.sectionHeading}>Conditions (all optional)</h2>
-          <div className={styles.timeRow}>
-            <TextField
-              label="Time weighed"
-              type="time"
-              value={form.weighedTime}
-              onChange={(v) => set('weighedTime', v)}
-            />
-            <button
-              type="button"
-              className={styles.nowBtn}
-              onClick={() => set('weighedTime', currentTime())}
-            >
-              Now
-            </button>
-          </div>
-          <TriStateField
-            label="Before food/drink"
-            value={form.beforeFood}
-            onChange={(v) => set('beforeFood', v)}
-          />
-          <TriStateField
-            label="After bowel movement"
-            hint="(context for weight fluctuations)"
-            value={form.afterBowelMovement}
-            onChange={(v) => set('afterBowelMovement', v)}
-          />
-        </section>
+        {/* Optional context — a measurement is never invalidated by leaving
+            them blank, so they stay unset rather than defaulting to No. */}
+        <TriStateField
+          label="Before food/drink"
+          value={form.beforeFood}
+          onChange={(v) => set('beforeFood', v)}
+        />
+        <TriStateField
+          label="After bowel movement"
+          value={form.afterBowelMovement}
+          onChange={(v) => set('afterBowelMovement', v)}
+        />
 
         {error && <div className={pageStyles.error}>{error}</div>}
 

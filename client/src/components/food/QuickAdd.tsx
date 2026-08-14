@@ -62,11 +62,20 @@ function scaleFood(food: FoodWithPortions, qty: number): FoodPortion {
  * day's plan, or a single food at one of its usual portions.
  */
 export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProps) {
-  const [tab, setTab] = useState<'meals' | 'foods'>('meals');
+  const [tab, setTab] = useState<'meals' | 'foods' | 'weigh'>('meals');
   const [customFor, setCustomFor] = useState<string | null>(null);
   const [customQty, setCustomQty] = useState('');
 
   const dayTotal = templates.reduce((acc, t) => acc + t.calories, 0);
+
+  // Produce is logged by whatever the scale says — a wedge cut off a pumpkin
+  // has no portion worth a button — so it gets its own tab keyed on weight
+  // rather than sharing the one-tap list.
+  const produce = {
+    fruit: foods.filter((f) => f.category === 'fruit'),
+    vegetable: foods.filter((f) => f.category === 'vegetable'),
+  };
+  const hasProduce = produce.fruit.length + produce.vegetable.length > 0;
 
   const addCustom = (food: FoodWithPortions) => {
     const qty = parseDecimal(customQty);
@@ -94,6 +103,14 @@ export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProp
           onClick={() => setTab('foods')}
         >
           Foods
+        </button>
+        <button
+          type="button"
+          className={tab === 'weigh' ? `${styles.tab} ${styles.tabOn}` : styles.tab}
+          aria-pressed={tab === 'weigh'}
+          onClick={() => setTab('weigh')}
+        >
+          Weigh
         </button>
       </div>
 
@@ -219,6 +236,83 @@ export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProp
           ))}
         </>
       )}
+
+      {tab === 'weigh' && (
+        <>
+          {!hasProduce && (
+            <p className={styles.empty}>
+              No fruit or vegetables in the library yet — add one and set its category to
+              Fruit or Vegetable.
+            </p>
+          )}
+          {(['fruit', 'vegetable'] as const).map((category) =>
+            produce[category].length === 0 ? null : (
+              <div key={category} className={styles.weighGroup}>
+                <h3 className={styles.weighHeading}>
+                  {category === 'fruit' ? 'Fruits' : 'Vegetables'}
+                </h3>
+                {produce[category].map((food) => (
+                  <WeighRow key={food.id} food={food} busy={busy} onAdd={onAdd} />
+                ))}
+              </div>
+            )
+          )}
+        </>
+      )}
     </section>
+  );
+}
+
+/**
+ * One weighed item: put the piece on the scale, type the grams, log it. The
+ * calories update as you type, so an over-large portion is obvious before it
+ * becomes an entry rather than after.
+ */
+function WeighRow({
+  food,
+  busy,
+  onAdd,
+}: {
+  food: FoodWithPortions;
+  busy: boolean;
+  onAdd: (meals: Meal[]) => void;
+}) {
+  const [qty, setQty] = useState('');
+  const parsed = parseDecimal(qty);
+  const valid = parsed != null && parsed > 0;
+  const preview = valid ? scaleFood(food, parsed) : null;
+
+  const add = () => {
+    if (!valid || preview === null) return;
+    onAdd([portionToMeal(food, preview)]);
+    setQty('');
+  };
+
+  return (
+    <div className={styles.weighRow}>
+      <span className={styles.weighName}>
+        {food.name}
+        <span className={styles.weighBasis}>
+          {Math.round((food.calories / food.basisQty) * 100)} kcal/100 {food.unit}
+        </span>
+      </span>
+      <NumericInput
+        value={qty}
+        onChange={setQty}
+        placeholder="0"
+        ariaLabel={`Weight of ${food.name} in ${food.unit}`}
+        className={styles.weighInput}
+      />
+      <span className={styles.weighUnit}>{food.unit === 'unit' ? '×' : food.unit}</span>
+      <span className={styles.weighPreview}>{preview ? `${preview.calories} kcal` : '—'}</span>
+      <button
+        type="button"
+        className={styles.customAdd}
+        disabled={busy || !valid}
+        onClick={add}
+      >
+        Add
+      </button>
+    </div>
   );
 }

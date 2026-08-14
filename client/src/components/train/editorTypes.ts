@@ -1,4 +1,4 @@
-import { Workout, WorkoutExercise, WorkoutSet } from '../../types';
+import { LastPerformance, Workout, WorkoutExercise, WorkoutSet } from '../../types';
 import { parseDecimal } from '../../utils/numeric';
 
 /** Form state for one set (numbers kept as strings while typing). */
@@ -21,9 +21,11 @@ export interface EditorExercise {
   /** Position in the routine's default order — the reference for ⬆️/⬇️ badges. */
   defaultIndex: number;
   variation: string;
+  /** Set when this exercise took over from another one mid-session (⇄). */
+  swappedFrom: string | null;
   sets: EditorSet[];
-  /** Previous session of this exercise (for ghost text and copy-last). */
-  last: { date: string; sets: WorkoutSet[]; variation: string | null } | null;
+  /** Last time this exercise was performed — ghost text and the "last" line. */
+  last: LastPerformance | null;
 }
 
 export function setFromWorkout(s: WorkoutSet): EditorSet {
@@ -74,6 +76,26 @@ export function setToWorkout(s: EditorSet): WorkoutSet | 'invalid' | 'empty' {
 }
 
 /**
+ * True once a set carries enough to be worth keeping. Weight alone isn't
+ * enough: a set row is created pre-filled with the previous set's weight, so
+ * that would count every untouched row as logged.
+ */
+export function isSetComplete(s: EditorSet, isBodyweight: boolean): boolean {
+  const reps = parseNum(s.reps);
+  if (reps === null || reps === undefined || reps <= 0) return false;
+  if (isBodyweight) return true;
+  const weight = parseNum(s.weight);
+  return weight !== null && weight !== undefined;
+}
+
+/** Sets logged so far, in the notation used everywhere else. */
+export function loggedSets(ex: EditorExercise): WorkoutSet[] {
+  return ex.sets
+    .map(setToWorkout)
+    .filter((s): s is WorkoutSet => s !== 'invalid' && s !== 'empty');
+}
+
+/**
  * ⬆️/⬇️ badges computed from the day's order vs the routine's default order —
  * reordering the list is all it takes to record a machine-availability swap.
  */
@@ -111,6 +133,7 @@ export function buildWorkoutExercises(
       order: exercises.length,
       orderMoved: moved[i],
       variation: ex.variation.trim() === '' ? null : ex.variation.trim(),
+      swappedFrom: ex.swappedFrom,
       sets,
     });
   });
@@ -121,14 +144,13 @@ export function buildWorkoutExercises(
 export function editorFromWorkout(
   workout: Workout | null,
   catalog: { id: string; name: string; setupNotes: string; isBodyweight: boolean; orderIndex: number }[],
-  last: Workout | null
+  /**
+   * Last performance per exercise, keyed by lower-cased name. Looked up per
+   * exercise rather than per session: a movement skipped last time still has a
+   * "previous" to show.
+   */
+  lastByName: Map<string, LastPerformance>
 ): EditorExercise[] {
-  const lastByName = new Map(
-    (last?.exercises ?? []).map((ex) => [
-      ex.exerciseName.toLowerCase(),
-      { date: last!.date, sets: ex.sets, variation: ex.variation },
-    ])
-  );
   const catalogByName = new Map(catalog.map((c) => [c.name.toLowerCase(), c]));
 
   const list: EditorExercise[] = [];
@@ -144,6 +166,7 @@ export function editorFromWorkout(
       isBodyweight: cat?.isBodyweight ?? ex.sets.every((s) => s.weightKg === null),
       defaultIndex: cat?.orderIndex ?? 1000 + list.length,
       variation: ex.variation ?? '',
+      swappedFrom: ex.swappedFrom ?? null,
       sets: ex.sets.map(setFromWorkout),
       last: lastByName.get(ex.exerciseName.toLowerCase()) ?? null,
     });
@@ -160,6 +183,7 @@ export function editorFromWorkout(
       isBodyweight: c.isBodyweight,
       defaultIndex: c.orderIndex,
       variation: '',
+      swappedFrom: null,
       sets: [],
       last: lastByName.get(c.name.toLowerCase()) ?? null,
     });

@@ -7,6 +7,7 @@ const foodSchema = new Schema<FoodDoc>(
   {
     name: { type: String, required: true },
     unit: { type: String, enum: ['unit', 'g', 'ml'], default: 'g' },
+    category: { type: String, enum: ['fruit', 'vegetable', 'other'], default: 'other' },
     basisQty: { type: Number, required: true },
     calories: { type: Number, required: true },
     proteinG: { type: Number, default: null },
@@ -29,6 +30,7 @@ export function serializeFood(doc: Record<string, unknown>): Food {
     id: String(doc._id),
     name: doc.name as string,
     unit: (doc.unit ?? 'g') as Food['unit'],
+    category: (doc.category ?? 'other') as Food['category'],
     basisQty: doc.basisQty as number,
     calories: doc.calories as number,
     proteinG: (doc.proteinG ?? null) as number | null,

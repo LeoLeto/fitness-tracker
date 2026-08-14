@@ -3,6 +3,7 @@ import { serializeWorkout, WorkoutModel } from '../models/Workout';
 import { asyncHandler } from '../utils/asyncHandler';
 import { parseRangeQuery, rangeFilter } from '../utils/rangeQuery';
 import { parseSessionLine } from '../workouts/notation';
+import { LastPerformance } from '../workouts/types';
 import { validateWorkout } from '../workouts/validation';
 
 export const workoutsRouter = Router();
@@ -41,6 +42,48 @@ workoutsRouter.get(
       return;
     }
     res.json(serializeWorkout(doc as Record<string, unknown>));
+  })
+);
+
+/**
+ * GET /api/workouts/last-by-exercise?before=YYYY-MM-DD — last time each
+ * exercise was actually performed.
+ *
+ * The logger used to read "last time" off the single previous session of the
+ * routine, so an exercise skipped that day (a machine taken, a movement swapped
+ * out) looked as though it had never been done. Walking back over recent
+ * sessions instead gives every exercise its own last performance, whichever
+ * day — or routine — it happened on.
+ */
+workoutsRouter.get(
+  '/last-by-exercise',
+  asyncHandler(async (req, res) => {
+    const before = typeof req.query.before === 'string' ? req.query.before : undefined;
+    const filter: Record<string, unknown> = { type: 'strength' };
+    if (before) filter.date = { $lt: before };
+
+    // 120 sessions ≈ six months of training: far enough back to catch a rarely
+    // used machine, bounded enough to stay a single quick query.
+    const docs = await WorkoutModel.find(filter).sort({ date: -1 }).limit(120).lean();
+
+    const latest = new Map<string, LastPerformance>();
+    for (const doc of docs) {
+      const workout = serializeWorkout(doc as Record<string, unknown>);
+      for (const ex of workout.exercises) {
+        if (ex.sets.length === 0) continue;
+        const key = ex.exerciseName.trim().toLowerCase();
+        if (latest.has(key)) continue; // documents arrive newest first
+        latest.set(key, {
+          exerciseName: ex.exerciseName,
+          date: workout.date,
+          routine: workout.routine,
+          variation: ex.variation,
+          sets: ex.sets,
+        });
+      }
+    }
+
+    res.json({ records: [...latest.values()] });
   })
 );
 

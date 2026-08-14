@@ -1,10 +1,5 @@
 // Train page + exercise logger styles.
 
-.savedBadge {
-  color: var(--accent-deep);
-  font-weight: 600;
-}
-
 .routineChips {
   display: flex;
   gap: 6px;
@@ -36,11 +31,30 @@
 
 // ── Exercise card ───────────────────────────────────────────────────────────
 
+// The cards run edge to edge on a phone: a set row has to hold two inputs, five
+// RIR chips, three flags and a delete button on one line, and 28px of card
+// padding was the difference between fitting and wrapping.
+.exerciseList {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -14px;
+  border-top: 1px solid var(--border);
+}
+
 .exercise {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: 10px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+// The open exercise is the one being worked on — lifted off the list around it.
+.exerciseOpen {
+  background: var(--surface);
+  box-shadow: inset 3px 0 0 var(--accent);
+  padding-bottom: 14px;
 }
 
 .exerciseHeader {
@@ -57,7 +71,7 @@
   background: none;
   border: none;
   text-align: left;
-  padding: 0;
+  padding: 4px 0;
   cursor: pointer;
   color: var(--text);
   min-width: 0;
@@ -75,6 +89,27 @@
 
 .orderBadge {
   font-size: 13px;
+}
+
+// How many sets are in the bag, without opening the card.
+.setCount {
+  display: inline-block;
+  margin-left: 6px;
+  min-width: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+  vertical-align: 1px;
+}
+
+.swapBadge {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent-deep);
 }
 
 .setupNotes {
@@ -105,7 +140,7 @@
   border: none;
   background: var(--surface-2);
   color: var(--text-muted);
-  width: 34px;
+  width: 32px;
   height: 32px;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -122,31 +157,18 @@
 }
 
 .lastLine {
+  margin: 0;
   background: var(--surface-2);
-  border: none;
   border-radius: var(--radius-sm);
-  text-align: left;
-  padding: 8px 10px;
+  padding: 7px 10px;
   font-size: 12.5px;
   color: var(--text-muted);
-  cursor: pointer;
   font-variant-numeric: tabular-nums;
-
-  &:focus-visible {
-    outline: 2px solid var(--focus-ring);
-  }
 }
 
 .lastLabel {
   font-weight: 600;
   color: var(--text-faint);
-}
-
-.copyHint {
-  float: right;
-  color: var(--accent-deep);
-  font-weight: 600;
-  padding-left: 8px;
 }
 
 // ── Personal best ───────────────────────────────────────────────────────────
@@ -189,19 +211,22 @@
 
 // ── Set rows ────────────────────────────────────────────────────────────────
 
+// One set, one line. The two number fields are deliberately narrow — a weight
+// is three characters and a rep count two, so the width they don't need is
+// width the chips do.
 .setsHeader,
 .setRow {
   display: grid;
-  grid-template-columns: 62px 62px auto auto 28px;
-  gap: 6px;
+  grid-template-columns: 46px 42px minmax(0, 1fr) auto 22px;
+  gap: 4px;
   align-items: center;
 }
 
 .setsHeader {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: var(--text-faint);
 
   span:nth-child(3),
@@ -212,9 +237,11 @@
 
 .setRow {
   input {
-    padding: 8px 8px;
-    min-height: 42px;
-    font-size: 15.5px;
+    padding: 8px 2px;
+    min-height: 44px;
+    // 16px exactly: anything smaller makes mobile Safari zoom the page in on
+    // focus, and it never zooms back out.
+    font-size: 16px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     text-align: center;
@@ -230,10 +257,15 @@
   opacity: 0.75;
 }
 
-.rirChips,
+.rirChips {
+  display: flex;
+  gap: 2px;
+  justify-content: space-between;
+}
+
 .flagChips {
   display: flex;
-  gap: 3px;
+  gap: 2px;
   justify-content: center;
 }
 
@@ -241,17 +273,23 @@
   border: 1.5px solid var(--border);
   background: var(--surface);
   color: var(--text-faint);
-  min-width: 26px;
-  height: 30px;
+  min-width: 0;
+  flex: 1;
+  height: 34px;
   border-radius: 7px;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  padding: 0 4px;
+  padding: 0 2px;
 
   &:focus-visible {
     outline: 2px solid var(--focus-ring);
   }
+}
+
+.flagChips .chip {
+  flex: none;
+  width: 26px;
 }
 
 .chipOn {
@@ -278,7 +316,7 @@
   color: var(--text-faint);
   cursor: pointer;
   font-size: 13px;
-  padding: 6px 2px;
+  padding: 8px 0;
 
   &:hover {
     color: var(--bad);
@@ -289,10 +327,53 @@
   }
 }
 
+// ── Ghost rows: the rest of last session ────────────────────────────────────
+
+// Everything last time had beyond the rows on screen. Dashed and faint so it
+// reads as history, tappable because the usual next move is to repeat it.
+.ghostRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  padding: 7px 10px;
+  min-height: 38px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-faint);
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+  }
+}
+
+.ghostIndex {
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 12px;
+}
+
+.ghostSet {
+  font-size: 13px;
+  font-style: italic;
+  font-variant-numeric: tabular-nums;
+}
+
+.ghostHint {
+  margin-left: auto;
+  font-size: 11px;
+}
+
+// ── Actions ─────────────────────────────────────────────────────────────────
+
 .exerciseActions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .smallBtn {
@@ -301,7 +382,7 @@
   color: var(--text-muted);
   font-size: 13px;
   font-weight: 600;
-  padding: 7px 12px;
+  padding: 8px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
@@ -317,34 +398,90 @@
 }
 
 .variation {
-  flex: 1;
-  min-width: 0;
-  padding: 7px 10px;
-  min-height: 36px;
-  font-size: 13px;
+  width: 100%;
+  padding: 9px 10px;
+  min-height: 42px;
+  font-size: 16px;
 }
 
-.quickRow {
-  display: flex;
-  gap: 8px;
+// ── Mid-session swap ────────────────────────────────────────────────────────
 
-  input {
-    flex: 1;
-    font-size: 14px;
-    font-variant-numeric: tabular-nums;
+.swapPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 10px;
+}
+
+.swapHint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.swapOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.swapOption {
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent-deep);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
   }
 }
 
-.quickWarnings {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--warn);
-}
+// ── Collapsed summary ───────────────────────────────────────────────────────
 
+// A closed exercise says exactly what was done, in the same notation as the
+// exports and the paper log it came from.
 .collapsedSummary {
   margin: 0;
   font-size: 13px;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.collapsedVariation {
+  font-style: italic;
+  color: var(--text-faint);
+}
+
+// ── Save state ──────────────────────────────────────────────────────────────
+
+.routineBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.saveState {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.saveStateError {
+  color: var(--bad);
 }
 
 // ── Cardio ──────────────────────────────────────────────────────────────────
@@ -496,7 +633,6 @@
 
   input:last-child {
     flex: 1;
-    font-size: 13px;
   }
 }
 
@@ -532,61 +668,56 @@
   }
 }
 
-@media (max-width: 480px) {
-  // Two inputs, five RIR chips, three flag chips and the delete button do not
-  // fit one line on a phone — squeezed into a grid they spilled past the card
-  // edge (the ✕ ended up off screen entirely). Wrapping puts whatever doesn't
-  // fit on a second line instead of shrinking touch targets below the thumb.
+// A set used to wrap onto a second line on every phone, which made a three-set
+// exercise look like six rows. Narrow fields and edge-to-edge cards fit it on
+// one line down to about 340 px; below that the flags — the least used of the
+// three groups — drop to their own line rather than shrink under the thumb.
+@media (max-width: 340px) {
   .setsHeader {
-    grid-template-columns: 60px 60px;
-    gap: 4px;
+    grid-template-columns: 44px 40px 1fr 20px;
 
-    // RIR labels itself inside the row below; the ? ✱ 🚨 glyphs speak for
-    // themselves (and carry their own tooltips).
-    span:nth-child(3),
-    span:nth-child(4),
-    span:nth-child(5) {
+    span:nth-child(4) {
       display: none;
     }
   }
 
   .setRow {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 4px;
-
-    input {
-      width: 60px;
-    }
-
-    .rirChips::before {
-      content: 'RIR';
-      align-self: center;
-      font-size: 10.5px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      color: var(--text-faint);
-      margin-right: 2px;
-    }
-
-    .removeSet {
-      margin-left: auto;
-    }
+    grid-template-columns: 44px 40px 1fr 20px;
+    row-gap: 6px;
   }
 
-  // A set spans more than one line now, so consecutive sets need separating.
+  .flagChips {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .flagChips .chip {
+    width: 34px;
+  }
+
   .setRow + .setRow {
     border-top: 1px solid var(--border);
-    padding-top: 8px;
+    padding-top: 6px;
+  }
+}
+
+// From tablet width up there is room to breathe: the cards become cards again.
+@media (min-width: 700px) {
+  .exerciseList {
+    margin: 0;
+    border-top: none;
+    gap: 8px;
   }
 
-  // "variation (e.g. w/step, barbell)" is clipped to a few characters when it
-  // shares a line with both buttons — give it a line of its own.
-  .exerciseActions {
-    flex-wrap: wrap;
+  .exercise {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
   }
 
-  .variation {
-    flex-basis: 100%;
+  .setsHeader,
+  .setRow {
+    grid-template-columns: 62px 56px minmax(0, 1fr) auto 28px;
+    gap: 6px;
   }
 }

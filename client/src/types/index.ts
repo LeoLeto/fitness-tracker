@@ -19,11 +19,15 @@ export interface Meal {
 
 export type FoodUnit = 'unit' | 'g' | 'ml';
 
+/** Produce is grouped apart because it is logged by whatever the scale says. */
+export type FoodCategory = 'fruit' | 'vegetable' | 'other';
+
 /** A reusable food: nutrition per `basisQty` units, plus one-tap portions. */
 export interface Food {
   id: string;
   name: string;
   unit: FoodUnit;
+  category: FoodCategory;
   basisQty: number;
   calories: number;
   proteinG: number | null;
@@ -221,6 +225,8 @@ export interface WorkoutExercise {
   order: number;
   orderMoved: 'up' | 'down' | null; // ⬆️ / ⬇️ vs the routine's default order
   variation: string | null;
+  /** The exercise this one replaced mid-session (⇄), e.g. after a set hurt. */
+  swappedFrom: string | null;
   sets: WorkoutSet[];
 }
 
@@ -234,6 +240,18 @@ export interface Workout {
   notes: string | null;
   dateInferred: boolean;
   exercises: WorkoutExercise[];
+}
+
+/**
+ * The last time one exercise was performed, looked up per exercise rather than
+ * per session — a movement skipped last time still shows what to beat.
+ */
+export interface LastPerformance {
+  exerciseName: string;
+  date: string;
+  routine: string | null;
+  variation: string | null;
+  sets: WorkoutSet[];
 }
 
 export interface ParsedSession {

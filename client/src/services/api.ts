@@ -5,8 +5,8 @@ import {
   ExerciseSessionPoint,
   Food,
   FoodWithPortions,
+  LastPerformance,
   MealTemplate,
-  ParsedSession,
   PersonalBest,
   Profile,
   ResolvedMealTemplate,
@@ -141,6 +141,15 @@ export const api = {
     const qs = params.toString();
     return request<Workout[]>(`/workouts${qs ? `?${qs}` : ''}`);
   },
+  /**
+   * Last performance of every exercise before `before`, whichever session it
+   * happened in — the previous session alone misses anything skipped that day.
+   */
+  getLastByExercise: async (before?: string): Promise<LastPerformance[]> => {
+    const qs = before ? `?before=${encodeURIComponent(before)}` : '';
+    return (await request<{ records: LastPerformance[] }>(`/workouts/last-by-exercise${qs}`))
+      .records;
+  },
   getLastWorkout: async (routine: string, before?: string): Promise<Workout | null> => {
     try {
       const params = new URLSearchParams({ routine });
@@ -159,11 +168,6 @@ export const api = {
         })
       : request<Workout>('/workouts', { method: 'POST', body: JSON.stringify(workout) }),
   deleteWorkout: (id: string) => request<void>(`/workouts/${id}`, { method: 'DELETE' }),
-  parseSetText: (text: string, isBodyweight: boolean) =>
-    request<ParsedSession>('/workouts/parse', {
-      method: 'POST',
-      body: JSON.stringify({ text, isBodyweight }),
-    }),
 
   /** Markdown / prompt exports as plain text (for clipboard copy). */
   getExportText: async (opts: {

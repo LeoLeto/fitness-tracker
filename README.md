@@ -103,10 +103,10 @@ in exports.
 | Page | What it does |
 |---|---|
 | **Dashboard** | Current weight, 7/14/28-day averages (with measurement counts), weight trend vs target, calorie & macro averages, this week's training, weight/calorie/combined charts, quick date ranges (7d…1y, custom). |
-| **Weigh-in** | Body weight plus the previous weigh-in and day-over-day delta, with the optional weigh-in conditions (time weighed + "Now" button, before food, after bowel movement) always expanded — no taps to reach them. |
-| **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), optional time, calories and optional protein/carbs/fat/fiber. The running day total is shown against your calorie target with the amount remaining. **Quick add** logs from the food library in one tap — a whole meal template, every meal of the day at once, or a single food at one of its usual portions — and saves it immediately, with a 5-second **Undo** in the toast. Meals already eaten stay **folded behind their count** (tap to edit) and every save returns you to the day total at the top. A day can also be logged as one total, and an existing total can be split into meals without losing the number. |
-| **Food library** | Reusable foods and meal templates. A food stores its nutrition per a reference amount (per 100 ml, per 1 egg, per 50 g) plus the portions worth a one-tap button, so any quantity scales correctly. Templates are lists of foods with quantities, and both their totals and their written-out recipe are computed from the library — editing a food updates every template that uses it. |
-| **Train** | Workout logger: pick a routine (Push/Pull/Legs/Abs/Cardio), log sets with one-tap RIR (0–4) and flag chips, **ghosts of the last session** (its weight/reps/RIR shown inside the empty fields, set by set) plus each exercise's **all-time PR and a live "new PR" flag**, copy the last session with one tap, reorder exercises with ↑↓ (order swaps are recorded automatically), per-exercise "quick text" entry in your own notation, cardio sessions (type + minutes), and an exercise manager (setup notes, bodyweight flag, ordering, archive). |
+| **Weigh-in** | One card that fits a phone screen without scrolling: body weight, the previous weigh-in with the day-over-day delta, and the two optional conditions (before food, after bowel movement). The time is stamped at save rather than typed — you log the number when you step off the scale — and a time already recorded is never overwritten. |
+| **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), calories and optional protein/carbs/fat/fiber (the time is stamped when the meal is logged, not typed). The running day total is shown against your calorie target with the amount remaining. **Quick add** logs from the food library in one tap — a whole meal template, every meal of the day at once, or a single food at one of its usual portions — and saves it immediately, with a 5-second **Undo** in the toast. A third **Weigh** tab lists fruit and vegetables for the times you cut a wedge off a pumpkin and put it on the scale: type the grams, see the calories update, log it. Meals already eaten stay **folded behind their count** (tap to edit) and every save returns you to the day total at the top. A day can also be logged as one total, and an existing total can be split into meals without losing the number. |
+| **Food library** | Reusable foods and meal templates. A food stores its nutrition per a reference amount (per 100 ml, per 1 egg, per 50 g) plus the portions worth a one-tap button, so any quantity scales correctly. Each food is filed as a staple, a fruit or a vegetable; the last two are what the Weigh tab offers. Templates are lists of foods with quantities, and both their totals and their written-out recipe are computed from the library — editing a food updates every template that uses it. |
+| **Train** | Workout logger built for one hand between sets. Pick a routine (Push/Pull/Legs/Abs/Cardio); tapping an exercise opens it with an empty set ready and collapses the previous one, which stays on screen as its raw notation. A set is one full-width line — weight, reps, one-tap RIR (0–4), flag chips — and filling one opens the next automatically. **Everything saves as you type**, with no Save button. Each exercise shows **ghosts of the last time you did it** (its weight/reps/RIR inside the empty fields, plus the remaining sets listed below them) and its **all-time PR with a live "new PR" flag**. Reorder with ↑↓ (order swaps are recorded), note a variation behind **+ comment**, record a mid-session **⇄ swap**, log cardio (type + minutes), and manage exercises (setup notes, bodyweight flag, ordering, archive). |
 | **Exercise progress** | Per-exercise chart of estimated 1RM (or best reps for bodyweight work) over real calendar time, with pain/form-flagged sessions marked, plus a session table. |
 | **History** | All entries — tap a day to edit its weigh-in, tap the calorie figure to edit its food, or delete the day. |
 | **Weekly Review** | Monday–Sunday summaries: average weight, weigh-ins, calories, protein, within-week trend, change vs previous week, training days, sessions per routine, cardio minutes, notes. |
@@ -129,6 +129,10 @@ compact notation used in the original paper logs:
 - `BW` — bodyweight · `DS35x3/30x3` — drop set
 - ⬆️/⬇️ badges mean the exercise order was swapped that day (recorded
   automatically when you reorder exercises in the logger)
+- `(⇄ after X)` means the movement was abandoned mid-session and finished on
+  this exercise instead — e.g. a cable low row that hurt, carried on as a
+  chest-supported row. Both exercises keep the sets actually performed, and the
+  link stops a two-set exercise reading as a bad day.
 
 ### Insights (rules-based, always transparent about data used)
 
@@ -178,9 +182,12 @@ add another set.
 
 ### Navigation
 
-On mobile the bottom tab bar is the entire navigation — Home, Weigh, Food,
-Train, Stats, More — with no header or branding taking up vertical space.
-History, Food library, Weekly Review, Export and Settings live under **More**.
+On mobile the bottom tab bar is the entire navigation — Weigh, Food, Train,
+More — with no header or branding taking up vertical space. Only the three
+things logged daily get a tab; Home, Stats, History, Food library, Weekly
+Review, Export and Settings live under **More**. Pages carry no heading of
+their own: the current tab is filled and ruled instead, so the title isn't
+repeated at the top of every screen.
 On desktop (≥820px) a single top nav row replaces the tabs. A floating ↑ button
 appears once a page is scrolled past 400px, on any page.
 
@@ -333,6 +340,7 @@ GET    /api/exercises?routine    POST   /api/exercises
 PUT    /api/exercises/:id        DELETE /api/exercises/:id
 GET    /api/workouts?from&to&routine&type
 GET    /api/workouts/last?routine&before
+GET    /api/workouts/last-by-exercise?before
 POST   /api/workouts             POST   /api/workouts/parse
 GET    /api/workouts/:id         PUT    /api/workouts/:id
 DELETE /api/workouts/:id

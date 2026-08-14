@@ -85,6 +85,8 @@ export function validateWorkout(body: unknown): ValidationResult<Omit<Workout, '
     }
     const variation = str(ex.variation, 200);
     if (variation === 'invalid') errors.push(`exercise ${i + 1}: variation is too long`);
+    const swappedFrom = str(ex.swappedFrom, 100);
+    if (swappedFrom === 'invalid') errors.push(`exercise ${i + 1}: swappedFrom is too long`);
     const rawSets = Array.isArray(ex.sets) ? ex.sets : [];
     if (rawSets.length > 30) errors.push(`exercise ${i + 1}: too many sets`);
     const sets = rawSets
@@ -96,6 +98,7 @@ export function validateWorkout(body: unknown): ValidationResult<Omit<Workout, '
       order: typeof ex.order === 'number' && Number.isInteger(ex.order) ? ex.order : i,
       orderMoved: ex.orderMoved === 'up' || ex.orderMoved === 'down' ? ex.orderMoved : null,
       variation: variation === 'invalid' ? null : variation,
+      swappedFrom: swappedFrom === 'invalid' ? null : swappedFrom,
       sets,
     });
   });
