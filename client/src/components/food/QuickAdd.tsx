@@ -42,13 +42,19 @@ function templateToMeal(template: ResolvedMealTemplate): Meal {
   };
 }
 
+/** Mirrors the server's `formatQty`: "150 g", "200 ml", "1 tsp", plain "4". */
+function formatQty(qty: number, food: FoodWithPortions): string {
+  if (food.unit !== 'unit') return `${qty} ${food.unit}`;
+  return food.unitLabel === '' ? String(qty) : `${qty} ${food.unitLabel}`;
+}
+
 /** Scales a food to an arbitrary quantity — mirrors the server's portion maths. */
 function scaleFood(food: FoodWithPortions, qty: number): FoodPortion {
   const factor = food.basisQty === 0 ? 0 : qty / food.basisQty;
   const macro = (v: number | null) => (v == null ? null : Math.round(v * factor * 10) / 10);
   return {
     qty,
-    label: food.unit === 'unit' ? String(qty) : `${qty} ${food.unit}`,
+    label: formatQty(qty, food),
     calories: Math.round(food.calories * factor),
     proteinG: macro(food.proteinG),
     carbsG: macro(food.carbsG),
@@ -65,6 +71,7 @@ const WEIGH_GROUPS: { category: FoodCategory; heading: string }[] = [
   { category: 'fruit', heading: 'Fruits' },
   { category: 'vegetable', heading: 'Vegetables' },
   { category: 'dairy', heading: 'Dairy' },
+  { category: 'dressing', heading: 'Dressings & oils' },
 ];
 
 /**
@@ -75,6 +82,9 @@ export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProp
   const [tab, setTab] = useState<'meals' | 'foods' | 'weigh'>('meals');
   const [customFor, setCustomFor] = useState<string | null>(null);
   const [customQty, setCustomQty] = useState('');
+  // Closed to start with, one open at a time: forty-odd weighed foods across
+  // four groups is a lot of scrolling to reach the one you actually cut up.
+  const [openGroup, setOpenGroup] = useState<FoodCategory | null>(null);
 
   const dayTotal = templates.reduce((acc, t) => acc + t.calories, 0);
 
@@ -86,6 +96,13 @@ export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProp
     ...group,
     foods: foods.filter((f) => f.category === group.category),
   })).filter((group) => group.foods.length > 0);
+
+  // The Foods tab is the one-tap list, so it only holds foods that actually
+  // have a portion button. Produce has none — it is weighed — and listing it
+  // here filled the tab with bare names and pushed the staples off screen.
+  // The overlap is deliberate: an apple has a usual 180 g portion *and* can be
+  // put on the scale, so it belongs in both tabs.
+  const portionFoods = foods.filter((f) => f.portionOptions.length > 0);
 
   const addCustom = (food: FoodWithPortions) => {
     const qty = parseDecimal(customQty);
@@ -184,10 +201,13 @@ export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProp
 
       {tab === 'foods' && (
         <>
-          {foods.length === 0 && (
-            <p className={styles.empty}>No foods yet — add them in the food library.</p>
+          {portionFoods.length === 0 && (
+            <p className={styles.empty}>
+              No foods with one-tap portions yet — add portions to a food in the library,
+              or use the Weigh tab.
+            </p>
           )}
-          {foods.map((food) => (
+          {portionFoods.map((food) => (
             <div key={food.id} className={styles.foodRow}>
               <button
                 type="button"
@@ -224,7 +244,7 @@ export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProp
                     className={styles.customInput}
                   />
                   <span className={styles.customUnit}>
-                    {food.unit === 'unit' ? 'units' : food.unit}
+                    {food.unit === 'unit' ? food.unitLabel || 'units' : food.unit}
                   </span>
                   <span className={styles.customPreview}>
                     {(() => {
@@ -255,14 +275,26 @@ export function QuickAdd({ foods, templates, onAdd, busy = false }: QuickAddProp
               other than Staple.
             </p>
           )}
-          {weighed.map((group) => (
-            <div key={group.category} className={styles.weighGroup}>
-              <h3 className={styles.weighHeading}>{group.heading}</h3>
-              {group.foods.map((food) => (
-                <WeighRow key={food.id} food={food} busy={busy} onAdd={onAdd} />
-              ))}
-            </div>
-          ))}
+          {weighed.map((group) => {
+            const open = openGroup === group.category;
+            return (
+              <div key={group.category} className={styles.weighGroup}>
+                <button
+                  type="button"
+                  className={styles.weighHeading}
+                  aria-expanded={open}
+                  onClick={() => setOpenGroup(open ? null : group.category)}
+                >
+                  <span aria-hidden="true">{open ? '▾' : '▸'}</span> {group.heading}
+                  <span className={styles.weighCount}>{group.foods.length}</span>
+                </button>
+                {open &&
+                  group.foods.map((food) => (
+                    <WeighRow key={food.id} food={food} busy={busy} onAdd={onAdd} />
+                  ))}
+              </div>
+            );
+          })}
         </>
       )}
     </section>
@@ -309,7 +341,9 @@ function WeighRow({
         ariaLabel={`Weight of ${food.name} in ${food.unit}`}
         className={styles.weighInput}
       />
-      <span className={styles.weighUnit}>{food.unit === 'unit' ? '×' : food.unit}</span>
+      <span className={styles.weighUnit}>
+        {food.unit === 'unit' ? food.unitLabel || '×' : food.unit}
+      </span>
       <span className={styles.weighPreview}>{preview ? `${preview.calories} kcal` : '—'}</span>
       <button
         type="button"

@@ -74,9 +74,15 @@ export type FoodUnit = 'unit' | 'g' | 'ml';
  * the scale, and the weight is whatever it is — there is no sensible one-tap
  * portion to offer. `other` is everything logged by its usual portions instead.
  */
-export type FoodCategory = 'fruit' | 'vegetable' | 'dairy' | 'other';
+export type FoodCategory = 'fruit' | 'vegetable' | 'dairy' | 'dressing' | 'other';
 
-export const FOOD_CATEGORIES: FoodCategory[] = ['fruit', 'vegetable', 'dairy', 'other'];
+export const FOOD_CATEGORIES: FoodCategory[] = [
+  'fruit',
+  'vegetable',
+  'dairy',
+  'dressing',
+  'other',
+];
 
 /**
  * A reusable food with its nutrition per `basisQty` units, plus the portion
@@ -88,6 +94,12 @@ export interface Food {
   name: string;
   unit: FoodUnit;
   category: FoodCategory;
+  /**
+   * What one `unit` is called, for foods not measured in g or ml: "tsp",
+   * "slice", "scoop". Without it a portion of oil reads as a bare "1".
+   * Empty for g/ml foods, which carry their unit already.
+   */
+  unitLabel: string;
   basisQty: number;
   calories: number;
   proteinG: number | null;

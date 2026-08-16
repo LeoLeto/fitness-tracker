@@ -72,6 +72,9 @@ export function validateFood(body: unknown): ValidationResult<Omit<Food, 'id'>> 
   const notes = str(b.notes, 300);
   if (notes === 'invalid') errors.push('notes is too long');
 
+  const unitLabel = str(b.unitLabel, 20);
+  if (unitLabel === 'invalid') errors.push('unitLabel is too long');
+
   if (errors.length > 0) return { ok: false, errors };
   return {
     ok: true,
@@ -79,6 +82,7 @@ export function validateFood(body: unknown): ValidationResult<Omit<Food, 'id'>> 
       name: name as string,
       unit: unit as Food['unit'],
       category,
+      unitLabel: (unitLabel === 'invalid' ? null : unitLabel) ?? '',
       basisQty: basisQty as number,
       calories: calories as number,
       proteinG: macros.proteinG as number | null,

@@ -20,6 +20,8 @@ interface SeedFood {
   name: string;
   unit: FoodUnit;
   category?: FoodCategory;
+  /** What one unit is called, for countable foods: "tsp", "slice". */
+  unitLabel?: string;
   basisQty: number;
   calories: number;
   proteinG: number | null;
@@ -74,6 +76,18 @@ const WEIGHED: SeedFood[] = [
 
   // ── Dairy ─────────────────────────────────────────────────────────────────
   {
+    name: 'Topping-heavy ice cream',
+    unit: 'g',
+    category: 'dairy',
+    basisQty: 100,
+    calories: 350,
+    proteinG: 6,
+    carbsG: 40,
+    fatG: 22,
+    fiberG: null,
+    portions: [],
+  },
+  {
     name: 'Venezuelan white cheese',
     unit: 'g',
     category: 'dairy',
@@ -87,6 +101,49 @@ const WEIGHED: SeedFood[] = [
     fiberG: null,
     portions: [],
     notes: 'Queso blanco fresco / llanero',
+  },
+
+  // ── Dressings & oils ──────────────────────────────────────────────────────
+  {
+    name: 'Ketchup',
+    unit: 'g',
+    category: 'dressing',
+    basisQty: 100,
+    calories: 101,
+    proteinG: 1,
+    carbsG: 27,
+    fatG: 0.1,
+    fiberG: 0.3,
+    portions: [],
+  },
+  {
+    // One entry, both ways of using it: the 4.5 g one-tap portion is the
+    // teaspoon that goes in the eggs, and the Weigh tab takes any amount
+    // poured into the pan. Splitting it in two would have meant two oils
+    // drifting apart in the library.
+    name: 'Oil',
+    unit: 'g',
+    category: 'dressing',
+    basisQty: 100,
+    calories: 884,
+    proteinG: 0,
+    carbsG: 0,
+    fatG: 100,
+    fiberG: 0,
+    portions: [4.5],
+    notes: '1 tsp ≈ 4.5 g',
+  },
+  {
+    name: 'Mayonnaise',
+    unit: 'g',
+    category: 'dressing',
+    basisQty: 100,
+    calories: 680,
+    proteinG: 1,
+    carbsG: 0.6,
+    fatG: 75,
+    fiberG: 0,
+    portions: [],
   },
 ];
 
@@ -148,7 +205,7 @@ const FOODS: SeedFood[] = [
     carbsG: 5,
     fatG: null,
     fiberG: null,
-    portions: [200, 300],
+    portions: [100, 200, 300],
   },
   {
     name: 'Eggs',
@@ -268,18 +325,6 @@ const FOODS: SeedFood[] = [
     fiberG: 5,
     portions: [10],
   },
-  {
-    name: 'Oil',
-    unit: 'unit',
-    basisQty: 1,
-    calories: 40,
-    proteinG: 0,
-    carbsG: 0,
-    fatG: 4.5,
-    fiberG: 0,
-    portions: [1],
-    notes: '1 tsp',
-  },
 ];
 
 interface SeedTemplate {
@@ -308,7 +353,7 @@ const TEMPLATES: SeedTemplate[] = [
     items: [
       { food: 'Eggs', qty: 4 },
       { food: 'Skimmed milk', qty: 300 },
-      { food: 'Oil', qty: 1 },
+      { food: 'Oil', qty: 4.5 },
     ],
     expectedKcal: 413,
   },
@@ -355,6 +400,7 @@ async function main() {
         $set: {
           unit: seed.unit,
           category: seed.category ?? 'other',
+          unitLabel: seed.unitLabel ?? '',
           basisQty: seed.basisQty,
           calories: seed.calories,
           proteinG: seed.proteinG,

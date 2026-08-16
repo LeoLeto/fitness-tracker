@@ -15,6 +15,7 @@ interface FoodForm {
   name: string;
   unit: FoodUnit;
   category: FoodCategory;
+  unitLabel: string;
   basisQty: string;
   calories: string;
   protein: string;
@@ -29,6 +30,7 @@ const EMPTY_FOOD: FoodForm = {
   name: '',
   unit: 'g',
   category: 'other',
+  unitLabel: '',
   basisQty: '100',
   calories: '',
   protein: '',
@@ -45,6 +47,7 @@ function formFromFood(food: Food): FoodForm {
     name: food.name,
     unit: food.unit,
     category: food.category,
+    unitLabel: food.unitLabel,
     basisQty: String(food.basisQty),
     calories: String(food.calories),
     protein: s(food.proteinG),
@@ -83,6 +86,8 @@ function foodFromForm(form: FoodForm): Partial<Food> | string {
     name: form.name.trim(),
     unit: form.unit,
     category: form.category,
+    // Only meaningful for countable foods; g and ml name themselves.
+    unitLabel: form.unit === 'unit' ? form.unitLabel.trim() : '',
     basisQty,
     calories: Math.round(calories),
     ...(macros as Record<string, number | null>),
@@ -336,11 +341,24 @@ function FoodEditor({
             { value: 'fruit', label: 'Fruit' },
             { value: 'vegetable', label: 'Vegetable' },
             { value: 'dairy', label: 'Dairy' },
+            { value: 'dressing', label: 'Dressing' },
           ]}
           value={form.category}
           onChange={(v) => set('category', v)}
         />
       </div>
+
+      {form.unit === 'unit' && (
+        <label className={styles.field}>
+          <span>One unit is called (optional)</span>
+          <input
+            type="text"
+            value={form.unitLabel}
+            onChange={(e) => set('unitLabel', e.target.value)}
+            placeholder="e.g. tsp, slice, scoop"
+          />
+        </label>
+      )}
 
       <div className={styles.nutritionRow}>
         <label className={styles.field}>

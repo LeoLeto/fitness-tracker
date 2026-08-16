@@ -8,6 +8,8 @@ function food(name: string, fields: Partial<Food>): Food {
     id: name,
     name,
     unit: 'g',
+    category: 'other',
+    unitLabel: '',
     basisQty: 100,
     calories: 100,
     proteinG: null,
@@ -153,6 +155,23 @@ describe('foodPortion — scaling from the stored basis', () => {
   it('scales per-unit foods (eggs in batches of 3 and 4)', () => {
     expect(foodPortion(EGGS, 3)).toMatchObject({ calories: 210, proteinG: 15, label: '3' });
     expect(foodPortion(EGGS, 4)).toMatchObject({ calories: 280, proteinG: 20 });
+  });
+
+  // A countable food has no unit of its own, so a portion of oil used to read
+  // as a bare "1" with nothing saying 1 of what.
+  it('names the unit of a countable food when it has been given one', () => {
+    const oil = food('Oil', { unit: 'unit', unitLabel: 'tsp', basisQty: 1, calories: 40 });
+    expect(foodPortion(oil, 1).label).toBe('1 tsp');
+    expect(foodPortion(oil, 2).label).toBe('2 tsp');
+  });
+
+  it('leaves a countable food unlabelled when there is no sensible unit', () => {
+    expect(foodPortion(EGGS, 4).label).toBe('4');
+  });
+
+  it('never labels g/ml foods — they already carry their unit', () => {
+    const odd = food('Odd', { unit: 'ml', unitLabel: 'tsp', basisQty: 100 });
+    expect(foodPortion(odd, 200).label).toBe('200 ml');
   });
 
   it('scales a 150 g chicken portion to 180 kcal / 30 g protein', () => {

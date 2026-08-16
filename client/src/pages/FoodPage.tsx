@@ -409,11 +409,6 @@ export function FoodPage() {
     setDirty(true);
   };
 
-  const macroNote = (stat: { total: number | null; count: number }) =>
-    stat.total != null && stat.count < totals.mealCount
-      ? ` · ${stat.count}/${totals.mealCount} meals`
-      : '';
-
   return (
     <div className={pageStyles.page}>
       <DayNav date={date} onChange={(next) => setSearchParams({ date: next })} />
@@ -459,22 +454,10 @@ export function FoodPage() {
 
         {mode === 'meals' && totals.mealCount > 0 && (
           <div className={styles.macroRow}>
-            <span>
-              P {fmtGrams(totals.protein.total)}
-              <span className={styles.macroNote}>{macroNote(totals.protein)}</span>
-            </span>
-            <span>
-              C {fmtGrams(totals.carbs.total)}
-              <span className={styles.macroNote}>{macroNote(totals.carbs)}</span>
-            </span>
-            <span>
-              F {fmtGrams(totals.fat.total)}
-              <span className={styles.macroNote}>{macroNote(totals.fat)}</span>
-            </span>
-            <span>
-              Fib {fmtGrams(totals.fiber.total)}
-              <span className={styles.macroNote}>{macroNote(totals.fiber)}</span>
-            </span>
+            <span>P {fmtGrams(totals.protein.total)}</span>
+            <span>C {fmtGrams(totals.carbs.total)}</span>
+            <span>F {fmtGrams(totals.fat.total)}</span>
+            <span>Fib {fmtGrams(totals.fiber.total)}</span>
           </div>
         )}
       </section>

@@ -24,9 +24,11 @@ function scale(value: number | null, factor: number): number | null {
   return value == null ? null : roundMacro(value * factor);
 }
 
-export function formatQty(qty: number, unit: FoodUnit): string {
-  if (unit === 'unit') return String(qty);
-  return `${qty} ${unit}`;
+export function formatQty(qty: number, unit: FoodUnit, unitLabel = ''): string {
+  // g and ml name themselves; a countable food only does if it was told what
+  // one of it is called, so "1" becomes "1 tsp" but eggs stay a bare "4".
+  if (unit !== 'unit') return `${qty} ${unit}`;
+  return unitLabel === '' ? String(qty) : `${qty} ${unitLabel}`;
 }
 
 /** Scales one food to `qty` of its unit. */
@@ -34,7 +36,7 @@ export function foodPortion(food: Food, qty: number): FoodPortion {
   const factor = food.basisQty === 0 ? 0 : qty / food.basisQty;
   return {
     qty,
-    label: formatQty(qty, food.unit),
+    label: formatQty(qty, food.unit, food.unitLabel),
     calories: roundKcal(food.calories * factor),
     proteinG: scale(food.proteinG, factor),
     carbsG: scale(food.carbsG, factor),
