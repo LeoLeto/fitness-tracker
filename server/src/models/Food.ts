@@ -9,7 +9,7 @@ const foodSchema = new Schema<FoodDoc>(
     unit: { type: String, enum: ['unit', 'g', 'ml'], default: 'g' },
     category: {
       type: String,
-      enum: ['fruit', 'vegetable', 'dairy', 'dressing', 'other'],
+      enum: ['fruit', 'vegetable', 'dairy', 'pantry', 'dressing', 'other'],
       default: 'other',
     },
     unitLabel: { type: String, default: '' },

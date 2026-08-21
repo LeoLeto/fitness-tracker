@@ -341,6 +341,7 @@ function FoodEditor({
             { value: 'fruit', label: 'Fruit' },
             { value: 'vegetable', label: 'Vegetable' },
             { value: 'dairy', label: 'Dairy' },
+            { value: 'pantry', label: 'Pantry' },
             { value: 'dressing', label: 'Dressing' },
           ]}
           value={form.category}

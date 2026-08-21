@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { DayNav } from '../components/DayNav';
 import { NumericInput } from '../components/fields';
@@ -10,7 +10,7 @@ import { DailyEntry, Meal } from '../types';
 import { formatMedium, todayStr } from '../utils/dates';
 import { fmtGrams, fmtKcal } from '../utils/format';
 import { parseDecimal } from '../utils/numeric';
-import { scrollToTop } from '../utils/scroll';
+import { scrollToElement, scrollToTop } from '../utils/scroll';
 import pageStyles from '../styles/page.module.scss';
 import styles from './FoodPage.module.scss';
 
@@ -122,6 +122,11 @@ export function FoodPage() {
   // Meals already eaten are history, not the thing you came to do — the list
   // stays folded away behind its count until you actually need to edit a row.
   const [mealsOpen, setMealsOpen] = useState(false);
+  // Rows created by "+ Add meal" since the last save. They show on their own
+  // while the rest of the list stays folded — adding a meal is no reason to
+  // unfold everything already eaten — and the page scrolls down to the newest.
+  const [newKeys, setNewKeys] = useState<number[]>([]);
+  const newRowRef = useRef<HTMLElement | null>(null);
   const { toast, show } = useToast();
 
   const allEntries = useApi(() => api.listEntries(), []);
@@ -164,6 +169,7 @@ export function FoodPage() {
     // Reached on every load and after every save: a freshly persisted day is
     // exactly the case where the meal list has nothing left to say.
     setMealsOpen(false);
+    setNewKeys([]);
   };
 
   useEffect(() => {
@@ -184,6 +190,23 @@ export function FoodPage() {
 
   const totals = editorTotals(rows);
   const target = profile.data?.calorieTarget ?? null;
+
+  // The newest added row: the one that gets scrolled to, and the one still
+  // worth showing when the list as a whole is folded.
+  const focusKey = newKeys.length > 0 ? newKeys[newKeys.length - 1] : null;
+
+  // After the render that added the row, so the scroll lands on where it
+  // actually ended up rather than on the layout from before it existed.
+  useEffect(() => {
+    if (focusKey !== null) scrollToElement(newRowRef.current);
+  }, [focusKey]);
+
+  // Folded, the list still shows the rows you just added — they are the reason
+  // you tapped "+ Add meal" and have nothing in them yet to save.
+  const visibleRows = rows
+    .map((row, index) => ({ row, index }))
+    .filter(({ row }) => mealsOpen || newKeys.includes(row.key));
+
   const shownCalories = mode === 'meals' ? totals.calories : parseNum(dayTotal.calories) ?? 0;
   const remaining = target != null ? target - shownCalories : null;
 
@@ -193,10 +216,11 @@ export function FoodPage() {
   };
 
   const addMeal = () => {
+    const key = nextKey();
     setRows((rs) => [
       ...rs,
       {
-        key: nextKey(),
+        key,
         label: '',
         // Stamp the time only for today — back-filling a past day shouldn't
         // claim a meal happened at the moment you typed it in.
@@ -210,11 +234,15 @@ export function FoodPage() {
       },
     ]);
     setDirty(true);
-    setMealsOpen(true); // the new row is only useful if you can see it
+    // Shown on its own and scrolled to (see the effect below) rather than
+    // unfolding the whole list: the row you just asked for is the only one you
+    // need on screen, and the meals already logged stay out of the way.
+    setNewKeys((ks) => [...ks, key]);
   };
 
   const removeMeal = (key: number) => {
     setRows((rs) => rs.filter((r) => r.key !== key));
+    setNewKeys((ks) => ks.filter((k) => k !== key));
     setDirty(true);
   };
 
@@ -505,12 +533,20 @@ export function FoodPage() {
               {totals.mealCount} meal{totals.mealCount === 1 ? '' : 's'} logged
               {/* The kcal is already in the total card above — what the folded
                   list needs to say is that it's still editable. */}
-              {!mealsOpen && <span className={styles.loggedHint}>tap to edit</span>}
+              {!mealsOpen && (
+                <span className={styles.loggedHint}>
+                  {focusKey !== null ? 'tap to show all' : 'tap to edit'}
+                </span>
+              )}
             </button>
           )}
 
-          {mealsOpen && rows.map((row, i) => (
-            <section key={row.key} className={`card ${styles.meal}`}>
+          {visibleRows.map(({ row, index: i }) => (
+            <section
+              key={row.key}
+              ref={row.key === focusKey ? newRowRef : null}
+              className={`card ${styles.meal}`}
+            >
               <div className={styles.mealHeader}>
                 <span className={styles.mealIndex}>{i + 1}</span>
                 <input

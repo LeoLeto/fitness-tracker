@@ -40,6 +40,14 @@ interface ExerciseCardProps {
 
 const RIR_OPTIONS = [0, 1, 2, 3, 4];
 
+/**
+ * How many rows filling one in opens by itself. Three sets is the plan, so a
+ * fourth row appearing after the third was logged is noise, not help — the
+ * "+ set" button (and the ghost rows from last session) are there for the
+ * sessions that do go further.
+ */
+const AUTO_OPENED_SETS = 3;
+
 export function ExerciseCard({
   exercise,
   routine,
@@ -61,16 +69,19 @@ export function ExerciseCard({
   const [swapOpen, setSwapOpen] = useState(false);
 
   /**
-   * Applies a change to one set and, when the last row is filled in, opens the
-   * next one — logging a set and reaching for the next are the same action, so
-   * "+ set" was a tap between every set of every exercise.
+   * Applies a change to one set and, while still short of the usual three,
+   * opens the next row — logging a set and reaching for the next are the same
+   * action, so "+ set" was a tap between every set of every exercise. Past
+   * three it stops: a fourth set is deliberate, so it takes a deliberate tap.
    */
   const updateSet = (i: number, patch: Partial<EditorSet>) => {
     const sets = exercise.sets.map((s, j) => (j === i ? { ...s, ...patch } : s));
     const edited = sets[i];
     const isLast = i === sets.length - 1;
     const ready = isSetComplete(edited, exercise.isBodyweight) && edited.rir !== null;
-    if (isLast && ready) sets.push(emptyEditorSet(edited.weight));
+    if (isLast && ready && sets.length < AUTO_OPENED_SETS) {
+      sets.push(emptyEditorSet(edited.weight));
+    }
     onChange({ ...exercise, sets });
   };
 

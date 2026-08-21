@@ -20,7 +20,13 @@ export interface Meal {
 export type FoodUnit = 'unit' | 'g' | 'ml';
 
 /** Foods grouped apart because they are logged by whatever the scale says. */
-export type FoodCategory = 'fruit' | 'vegetable' | 'dairy' | 'dressing' | 'other';
+export type FoodCategory =
+  | 'fruit'
+  | 'vegetable'
+  | 'dairy'
+  | 'pantry'
+  | 'dressing'
+  | 'other';
 
 /** A reusable food: nutrition per `basisQty` units, plus one-tap portions. */
 export interface Food {

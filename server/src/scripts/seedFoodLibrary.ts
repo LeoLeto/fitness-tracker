@@ -102,6 +102,66 @@ const WEIGHED: SeedFood[] = [
     portions: [],
     notes: 'Queso blanco fresco / llanero',
   },
+  {
+    name: 'Butter',
+    unit: 'g',
+    category: 'dairy',
+    basisQty: 100,
+    calories: 717,
+    proteinG: 0.9,
+    carbsG: 0.1,
+    fatG: 81,
+    fiberG: 0,
+    portions: [],
+    notes: '1 tsp ≈ 5 g',
+  },
+
+  // ── Flours & sugar ────────────────────────────────────────────────────────
+  // Dry weight, before any water goes in: the flour is what you weigh, and the
+  // arepa or the cake it becomes has no weight worth logging.
+  {
+    name: 'Harina PAN',
+    unit: 'g',
+    category: 'pantry',
+    basisQty: 100,
+    // The pack states ranges (350–367 kcal, 1.5–3 g fat, 73–80 g carbs,
+    // 6–8 g protein); the middle of each is what's stored.
+    calories: 360,
+    proteinG: 7,
+    carbsG: 76,
+    fatG: 2,
+    fiberG: null,
+    portions: [],
+    notes: 'Pre-cooked corn flour, dry weight',
+  },
+  {
+    name: 'Farinha de trigo',
+    unit: 'g',
+    category: 'pantry',
+    basisQty: 100,
+    calories: 360,
+    proteinG: 12,
+    // Only calories and protein were given; the rest stays blank rather than
+    // being back-calculated from the calorie figure.
+    carbsG: null,
+    fatG: null,
+    fiberG: null,
+    portions: [],
+    notes: 'Wheat flour, dry weight',
+  },
+  {
+    name: 'Sugar',
+    unit: 'g',
+    category: 'pantry',
+    basisQty: 100,
+    calories: 387,
+    proteinG: 0,
+    carbsG: 100,
+    fatG: 0,
+    fiberG: 0,
+    portions: [],
+    notes: '1 tsp ≈ 4 g',
+  },
 
   // ── Dressings & oils ──────────────────────────────────────────────────────
   {

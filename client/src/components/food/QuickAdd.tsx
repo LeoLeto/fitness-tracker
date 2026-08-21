@@ -71,6 +71,7 @@ const WEIGH_GROUPS: { category: FoodCategory; heading: string }[] = [
   { category: 'fruit', heading: 'Fruits' },
   { category: 'vegetable', heading: 'Vegetables' },
   { category: 'dairy', heading: 'Dairy' },
+  { category: 'pantry', heading: 'Flours & sugar' },
   { category: 'dressing', heading: 'Dressings & oils' },
 ];
 

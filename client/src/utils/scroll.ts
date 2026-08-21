@@ -22,3 +22,24 @@ export function scrollToTop(): void {
     });
   });
 }
+
+/**
+ * Brings a just-created row into view, centred so its fields clear the bottom
+ * nav. Deferred by the same two frames as `scrollToTop`: the row only has a
+ * position in the layout once the render that added it has painted.
+ */
+export function scrollToElement(el: HTMLElement | null): void {
+  if (el === null) return;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const behavior: ScrollBehavior = reduced ? 'auto' : 'smooth';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      try {
+        el.scrollIntoView({ behavior, block: 'center' });
+      } catch {
+        // Engines without the options overload of scrollIntoView.
+        el.scrollIntoView();
+      }
+    });
+  });
+}

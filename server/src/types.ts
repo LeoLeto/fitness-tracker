@@ -74,12 +74,19 @@ export type FoodUnit = 'unit' | 'g' | 'ml';
  * the scale, and the weight is whatever it is — there is no sensible one-tap
  * portion to offer. `other` is everything logged by its usual portions instead.
  */
-export type FoodCategory = 'fruit' | 'vegetable' | 'dairy' | 'dressing' | 'other';
+export type FoodCategory =
+  | 'fruit'
+  | 'vegetable'
+  | 'dairy'
+  | 'pantry'
+  | 'dressing'
+  | 'other';
 
 export const FOOD_CATEGORIES: FoodCategory[] = [
   'fruit',
   'vegetable',
   'dairy',
+  'pantry',
   'dressing',
   'other',
 ];
