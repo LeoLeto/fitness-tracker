@@ -197,6 +197,7 @@ const WORKOUT_CSV_HEADER = [
   'exercise',
   'exercise_order',
   'order_moved',
+  'variant',
   'variation',
   'swapped_from',
   'set_number',
@@ -224,9 +225,13 @@ export function buildWorkoutsCsv(workouts: Workout[]): string {
       w.durationMin != null ? String(w.durationMin) : '',
     ];
     if (w.type === 'cardio' || w.exercises.length === 0) {
+      // Everything from `exercise` to `set_note` is blank for a session with no
+      // sets. Computed rather than hand-counted: the literal run of empties this
+      // replaced was one short, which shifted the notes a column left.
+      const blanks = WORKOUT_CSV_HEADER.length - base.length - 2;
       rows.push([
         ...base,
-        '', '', '', '', '', '', '', '', '', '', '', '', '',
+        ...Array<string>(blanks).fill(''),
         w.notes ?? '',
         w.dateInferred ? 'yes' : '',
       ]);
@@ -239,6 +244,7 @@ export function buildWorkoutsCsv(workouts: Workout[]): string {
           ex.exerciseName,
           String(ex.order + 1),
           ex.orderMoved ?? '',
+          ex.variant ?? '',
           ex.variation ?? '',
           ex.swappedFrom ?? '',
           String(i + 1),
@@ -262,6 +268,8 @@ export function buildWorkoutsCsv(workouts: Workout[]): string {
 const NOTATION_LEGEND =
   'Set notation: `weight xReps (RIR)` — `*` last rep with bad form, `?` rep count uncertain, ' +
   '`🚨` set cut short by pain, `BW` bodyweight. `[⬆️/⬇️]` = exercise order swapped that day. ' +
+  '`[variant]` = which named form of the movement it was (e.g. which machine); loads are only ' +
+  'comparable within one variant. ' +
   '`(⇄ after X)` = the movement was abandoned mid-session and finished on this exercise instead.';
 
 function orderBadge(moved: 'up' | 'down' | null): string {
@@ -292,10 +300,12 @@ export function buildWorkoutsMarkdown(workouts: Workout[]): string {
     const ordered = [...w.exercises].sort((a, b) => a.order - b.order);
     for (const ex of ordered) {
       if (ex.sets.length === 0) continue;
+      const variant = ex.variant ? ` [${ex.variant}]` : '';
       const variation = ex.variation ? ` (${ex.variation})` : '';
       const swapped = ex.swappedFrom ? ` (⇄ after ${ex.swappedFrom})` : '';
       lines.push(
-        `- ${ex.exerciseName}${variation}${swapped}${orderBadge(ex.orderMoved)}: ${formatSets(ex.sets)}`
+        `- ${ex.exerciseName}${variant}${variation}${swapped}` +
+          `${orderBadge(ex.orderMoved)}: ${formatSets(ex.sets)}`
       );
     }
     if (w.notes) lines.push(`- note: ${w.notes}`);

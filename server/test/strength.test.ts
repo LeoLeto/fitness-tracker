@@ -26,7 +26,7 @@ function set(weightKg: number | null, reps: number, rir: number | null = null, e
 function workout(
   date: string,
   routine: string,
-  exercises: { name: string; sets: WorkoutSet[] }[],
+  exercises: { name: string; sets: WorkoutSet[]; variant?: string }[],
   type: 'strength' | 'cardio' = 'strength',
   durationMin: number | null = null
 ): Workout {
@@ -45,6 +45,8 @@ function workout(
       order: i,
       orderMoved: null,
       variation: null,
+      variant: ex.variant ?? null,
+      swappedFrom: null,
       sets: ex.sets,
     })),
   };
@@ -95,6 +97,23 @@ describe('exerciseSeries', () => {
     ];
     const series = exerciseSeries(workouts, 'Chest Press');
     expect(series.map((p) => p.date)).toEqual(['2026-08-01', '2026-08-05']);
+  });
+
+  // Two machines on load scales half again apart make one line zig-zag between
+  // them rather than trend, so the chart plots a single variant at a time.
+  it('narrows to one variant when asked, and includes every one when not', () => {
+    const workouts = [
+      workout('2026-08-07', 'pull', [
+        { name: 'Low row machine', variant: 'Cable', sets: [set(45, 7, 2)] },
+      ]),
+      workout('2026-08-23', 'pull', [
+        { name: 'Low row machine', variant: 'Chest supported', sets: [set(30, 12, 2)] },
+      ]),
+    ];
+    expect(exerciseSeries(workouts, 'Low row machine')).toHaveLength(2);
+    const cable = exerciseSeries(workouts, 'Low row machine', 'cable');
+    expect(cable.map((p) => p.date)).toEqual(['2026-08-07']);
+    expect(cable[0].variant).toBe('Cable');
   });
 });
 
@@ -157,6 +176,25 @@ describe('personalBests', () => {
     const [pr] = personalBests(workouts);
     expect(pr.date).toBe('2026-06-01');
     expect(pr.badForm).toBe(true);
+  });
+
+  // A 45 kg cable best would sit permanently out of reach on the
+  // chest-supported machine and read as a plateau rather than a different lift.
+  it('ranks each variant of a movement on its own', () => {
+    const workouts = [
+      workout('2026-08-07', 'pull', [
+        { name: 'Low row machine', variant: 'Cable', sets: [set(45, 7, 2)] },
+      ]),
+      workout('2026-08-23', 'pull', [
+        { name: 'Low row machine', variant: 'Chest supported', sets: [set(30, 12, 2)] },
+      ]),
+    ];
+    const bests = personalBests(workouts);
+    expect(bests).toHaveLength(2);
+    expect(bests.map((b) => [b.variant, b.weightKg])).toEqual([
+      ['Cable', 45],
+      ['Chest supported', 30],
+    ]);
   });
 
   it('ignores cardio sessions', () => {

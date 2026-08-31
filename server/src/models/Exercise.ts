@@ -10,6 +10,7 @@ const exerciseSchema = new Schema<ExerciseDoc>(
     setupNotes: { type: String, default: '' },
     isBodyweight: { type: Boolean, default: false },
     orderIndex: { type: Number, default: 0 },
+    variants: { type: [String], default: [] },
     archived: { type: Boolean, default: false },
   },
   { timestamps: true, collection: 'exercises' }
@@ -27,6 +28,7 @@ export function serializeExercise(doc: Record<string, unknown>): Exercise {
     setupNotes: (doc.setupNotes ?? '') as string,
     isBodyweight: (doc.isBodyweight ?? false) as boolean,
     orderIndex: (doc.orderIndex ?? 0) as number,
+    variants: (doc.variants ?? []) as string[],
     archived: (doc.archived ?? false) as boolean,
   };
 }

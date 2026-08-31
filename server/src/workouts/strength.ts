@@ -6,6 +6,7 @@ import {
   Workout,
   WorkoutExercise,
 } from './types';
+import { perfKey, sameVariant } from './variants';
 
 /**
  * Strength metrics.
@@ -53,18 +54,28 @@ export function sessionPoint(workout: Workout, ex: WorkoutExercise): ExerciseSes
     hadPain: ex.sets.some((s) => s.pain),
     hadBadForm: ex.sets.some((s) => s.badForm),
     variation: ex.variation,
+    variant: ex.variant ?? null,
   };
 }
 
-/** Chronological session points for one exercise (matched by name, case-insensitive). */
-export function exerciseSeries(workouts: Workout[], exerciseName: string): ExerciseSessionPoint[] {
+/**
+ * Chronological session points for one exercise (matched by name,
+ * case-insensitive). Pass `variant` to narrow to one named form of the
+ * movement — two machines on different load scales make a single line zig-zag
+ * rather than trend. Omit it for every session of the exercise.
+ */
+export function exerciseSeries(
+  workouts: Workout[],
+  exerciseName: string,
+  variant?: string
+): ExerciseSessionPoint[] {
   const wanted = exerciseName.trim().toLowerCase();
   const points: ExerciseSessionPoint[] = [];
   for (const w of workouts) {
     for (const ex of w.exercises) {
-      if (ex.exerciseName.trim().toLowerCase() === wanted && ex.sets.length > 0) {
-        points.push(sessionPoint(w, ex));
-      }
+      if (ex.exerciseName.trim().toLowerCase() !== wanted || ex.sets.length === 0) continue;
+      if (variant !== undefined && !sameVariant(ex.variant, variant)) continue;
+      points.push(sessionPoint(w, ex));
     }
   }
   return points.sort((a, b) => (a.date < b.date ? -1 : 1));
@@ -86,7 +97,11 @@ export function beatsPerformance(
 }
 
 /**
- * All-time best set per exercise (matched by name, case-insensitive).
+ * All-time best set per exercise and variant (name matched case-insensitively).
+ *
+ * Per variant, because a record is only a target if it is reachable: the low
+ * row's 45 kg cable best would sit permanently out of reach on the
+ * chest-supported machine and read as a plateau rather than a different lift.
  *
  * Ties keep the earlier set, so the date is when the record was first reached
  * rather than when it was last equalled. Sets flagged for pain or bad form are
@@ -102,11 +117,12 @@ export function personalBests(workouts: Workout[]): PersonalBest[] {
   for (const w of sorted) {
     if (w.type !== 'strength') continue;
     for (const ex of w.exercises) {
-      const key = ex.exerciseName.trim().toLowerCase();
-      if (key === '') continue;
+      if (ex.exerciseName.trim() === '') continue;
+      const key = perfKey(ex.exerciseName, ex.variant);
       for (const s of ex.sets) {
         const candidate: PersonalBest = {
           exerciseName: ex.exerciseName,
+          variant: ex.variant ?? null,
           date: w.date,
           e1rm: s.weightKg != null ? estimated1RM(s.weightKg, s.reps, s.rir) : null,
           effectiveReps: s.reps + (s.rir ?? 0),
@@ -124,7 +140,11 @@ export function personalBests(workouts: Workout[]): PersonalBest[] {
     }
   }
 
-  return [...best.values()].sort((a, b) => a.exerciseName.localeCompare(b.exerciseName));
+  return [...best.values()].sort(
+    (a, b) =>
+      a.exerciseName.localeCompare(b.exerciseName) ||
+      (a.variant ?? '').localeCompare(b.variant ?? '')
+  );
 }
 
 /** Weekly training bars: strength sessions per routine, sets, cardio minutes. */

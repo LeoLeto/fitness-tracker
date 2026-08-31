@@ -213,6 +213,12 @@ export interface Exercise {
   setupNotes: string;
   isBodyweight: boolean;
   orderIndex: number;
+  /**
+   * Named forms of the movement that progress on their own load scale, e.g.
+   * ["Cable", "Chest supported"] for the low row. Empty for an exercise with
+   * only one form; the first is its default.
+   */
+  variants: string[];
   archived: boolean;
 }
 
@@ -233,6 +239,12 @@ export interface WorkoutExercise {
   order: number;
   orderMoved: 'up' | 'down' | null; // ⬆️ / ⬇️ vs the routine's default order
   variation: string | null;
+  /**
+   * Which of the catalog's named variants this was, or null for an exercise
+   * with only one form. Unlike `variation` this is a grouping key: "last time",
+   * the PR and the progress chart are all per variant.
+   */
+  variant: string | null;
   /** The exercise this one replaced mid-session (⇄), e.g. after a set hurt. */
   swappedFrom: string | null;
   sets: WorkoutSet[];
@@ -256,6 +268,8 @@ export interface Workout {
  */
 export interface LastPerformance {
   exerciseName: string;
+  /** The variant these sets were performed on — one record per variant. */
+  variant: string | null;
   date: string;
   routine: string | null;
   variation: string | null;
@@ -280,11 +294,14 @@ export interface ExerciseSessionPoint {
   hadPain: boolean;
   hadBadForm: boolean;
   variation: string | null;
+  variant: string | null;
 }
 
 /** All-time best single set of one exercise — the logger's target to beat. */
 export interface PersonalBest {
   exerciseName: string;
+  /** The variant the record was set on — bests are ranked per variant. */
+  variant: string | null;
   date: string;
   /** e1RM of the record set (kg); null for exercises never loaded with weight. */
   e1rm: number | null;

@@ -23,6 +23,12 @@ export interface Exercise {
   isBodyweight: boolean;
   /** Default position within the routine (what "swapped" is measured against). */
   orderIndex: number;
+  /**
+   * Named forms of the movement that progress on their own load scale, e.g.
+   * ["Cable", "Chest supported"] for the low row. Empty for an exercise with
+   * only one form; the first is its default. See `./variants`.
+   */
+  variants: string[];
   archived: boolean;
 }
 
@@ -52,8 +58,15 @@ export interface WorkoutExercise {
   order: number;
   /** Deviation from the routine's default order (⬆️ earlier / ⬇️ later). */
   orderMoved: 'up' | 'down' | null;
-  /** Session-specific variation, e.g. "w/step", "barbell", "chest supported". */
+  /** Session-specific variation, e.g. "w/step", "barbell", "one arm at a time". */
   variation: string | null;
+  /**
+   * Which of the catalog's named variants this was, or null for an exercise
+   * with only one form. Unlike `variation` this is a grouping key: "last time",
+   * the PR and the progress chart are all per variant, so two machines with
+   * different load scales never show each other's numbers.
+   */
+  variant: string | null;
   /**
    * The exercise this one replaced mid-session, e.g. starting cable low rows,
    * hurting your back and finishing the movement on the chest-supported row.
@@ -86,6 +99,8 @@ export interface Workout {
  */
 export interface LastPerformance {
   exerciseName: string;
+  /** The variant these sets were performed on — one record per variant. */
+  variant: string | null;
   date: string;
   routine: Routine | null;
   variation: string | null;
@@ -108,6 +123,7 @@ export interface ExerciseSessionPoint {
   hadPain: boolean;
   hadBadForm: boolean;
   variation: string | null;
+  variant: string | null;
 }
 
 /**
@@ -116,6 +132,8 @@ export interface ExerciseSessionPoint {
  */
 export interface PersonalBest {
   exerciseName: string;
+  /** The variant the record was set on — bests are ranked per variant. */
+  variant: string | null;
   /** When the record was set (the earliest date, if it was later equalled). */
   date: string;
   /** e1RM of the record set (kg); null for exercises never loaded with weight. */

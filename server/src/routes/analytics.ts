@@ -51,7 +51,8 @@ analyticsRouter.get(
   })
 );
 
-// GET /api/analytics/strength?exercise=Chest%20press — e1RM/reps series
+// GET /api/analytics/strength?exercise=Chest%20press[&variant=Cable] — e1RM/reps
+// series, optionally narrowed to one named variant of the movement.
 analyticsRouter.get(
   '/strength',
   asyncHandler(async (req, res) => {
@@ -60,8 +61,15 @@ analyticsRouter.get(
       res.status(400).json({ error: 'exercise query param is required' });
       return;
     }
+    const variant = typeof req.query.variant === 'string' && req.query.variant !== ''
+      ? req.query.variant
+      : undefined;
     const workouts = await loadWorkouts();
-    res.json({ exercise, points: exerciseSeries(workouts, exercise) });
+    res.json({
+      exercise,
+      variant: variant ?? null,
+      points: exerciseSeries(workouts, exercise, variant),
+    });
   })
 );
 

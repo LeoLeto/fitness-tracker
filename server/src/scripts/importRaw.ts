@@ -179,6 +179,8 @@ async function importWorkoutFile(filePath: string, year: number): Promise<void> 
         order: list.length,
         orderMoved: parsed.orderMoved,
         variation: parsed.variation,
+        // The notes predate named variants; the backfill script assigns them.
+        variant: null,
         swappedFrom: null,
         sets: parsed.sets,
       });

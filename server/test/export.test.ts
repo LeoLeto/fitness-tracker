@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { buildChatGptPrompt, buildCsv, buildMarkdown } from '../src/services/exportService';
+import {
+  buildChatGptPrompt,
+  buildCsv,
+  buildMarkdown,
+  buildWorkoutsCsv,
+  buildWorkoutsMarkdown,
+} from '../src/services/exportService';
 import { DailyEntry, Profile } from '../src/types';
+import { Workout } from '../src/workouts/types';
 
 function entry(date: string, fields: Partial<DailyEntry>): DailyEntry {
   return {
@@ -121,5 +128,90 @@ describe('ChatGPT prompt export', () => {
     expect(text).toContain('+0.2 kg/week');
     expect(text).toContain('Here is my data:');
     expect(text).toContain('| 2026-08-03 |');
+  });
+});
+
+describe('workout CSV export', () => {
+  const workouts: Workout[] = [
+    {
+      id: 'w1',
+      date: '2026-08-23',
+      type: 'strength',
+      routine: 'pull',
+      cardioType: null,
+      durationMin: null,
+      notes: 'good session',
+      dateInferred: false,
+      exercises: [
+        {
+          exerciseId: 'b',
+          exerciseName: 'Low row machine',
+          order: 0,
+          orderMoved: null,
+          variation: 'chest supported for the last two sets',
+          variant: 'Chest supported',
+          swappedFrom: null,
+          sets: [
+            {
+              weightKg: 30,
+              reps: 12,
+              rir: 2,
+              repsUncertain: false,
+              badForm: false,
+              pain: false,
+              isDropSet: false,
+              note: null,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'w2',
+      date: '2026-08-24',
+      type: 'cardio',
+      routine: null,
+      cardioType: 'treadmill',
+      durationMin: 30,
+      notes: 'easy pace',
+      dateInferred: false,
+      exercises: [],
+    },
+  ];
+
+  // Field-indexed rather than comma-counted, so a new column can't quietly
+  // shift a value into the wrong slot — the set-less padding row did exactly
+  // that when its run of empties was one short.
+  it('keeps every row aligned to the header, set-less sessions included', () => {
+    const lines = buildWorkoutsCsv(workouts).trim().split('\r\n');
+    const columns = lines[0].split(',');
+    expect(columns).toContain('variant');
+    for (const line of lines) expect(line.split(',')).toHaveLength(columns.length);
+
+    const row = (line: string) =>
+      Object.fromEntries(line.split(',').map((v, i) => [columns[i], v])) as Record<string, string>;
+
+    expect(row(lines[1])).toMatchObject({
+      exercise: 'Low row machine',
+      variant: 'Chest supported',
+      weight_kg: '30',
+      reps: '12',
+      rir: '2',
+      workout_notes: 'good session',
+    });
+    // The notes of a session with no sets land in their own column, not in the
+    // last set column before them.
+    expect(row(lines[2])).toMatchObject({
+      cardio_type: 'treadmill',
+      duration_min: '30',
+      exercise: '',
+      set_note: '',
+      workout_notes: 'easy pace',
+    });
+  });
+
+  it('names the variant alongside the exercise in the Markdown log', () => {
+    const md = buildWorkoutsMarkdown(workouts);
+    expect(md).toContain('- Low row machine [Chest supported]');
   });
 });

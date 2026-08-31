@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PersonalBest, WorkoutSet } from '../../types';
 import { NumericInput } from '../fields';
 import { formatShort } from '../../utils/dates';
+import { sameVariant } from '../../utils/variants';
 import {
   beatsPerformance,
   bestPerformance,
@@ -34,6 +35,12 @@ interface ExerciseCardProps {
   swapTargets: string[];
   onToggle: () => void;
   onChange: (next: EditorExercise) => void;
+  /**
+   * Same movement on another of its machines. Handled by the page rather than
+   * through `onChange`, because the card's history has to be re-read under the
+   * new variant's key.
+   */
+  onVariantChange: (variant: string | null) => void;
   onMove: (direction: -1 | 1) => void;
   onSwapTo: (targetName: string) => void;
 }
@@ -60,6 +67,7 @@ export function ExerciseCard({
   swapTargets,
   onToggle,
   onChange,
+  onVariantChange,
   onMove,
   onSwapTo,
 }: ExerciseCardProps) {
@@ -136,6 +144,11 @@ export function ExerciseCard({
         >
           <span className={styles.exerciseName}>
             {exercise.exerciseName}
+            {/* Which machine, while the card is shut — expanded, the chips
+                below say it, so repeating it there would be noise. */}
+            {!expanded && exercise.variant !== null && (
+              <span className={styles.variantBadge}>{exercise.variant}</span>
+            )}
             {orderMoved === 'up' && <span className={styles.orderBadge}> ⬆️</span>}
             {orderMoved === 'down' && <span className={styles.orderBadge}> ⬇️</span>}
             {done.length > 0 && <span className={styles.setCount}>{done.length}</span>}
@@ -150,7 +163,11 @@ export function ExerciseCard({
         <div className={styles.headerActions}>
           <Link
             className={styles.progressLink}
-            to={`/train/exercise?name=${encodeURIComponent(exercise.exerciseName)}&routine=${encodeURIComponent(routine)}`}
+            to={
+              `/train/exercise?name=${encodeURIComponent(exercise.exerciseName)}` +
+              `&routine=${encodeURIComponent(routine)}` +
+              (exercise.variant ? `&variant=${encodeURIComponent(exercise.variant)}` : '')
+            }
             aria-label={`${exercise.exerciseName} progress chart`}
           >
             ∿
@@ -187,12 +204,52 @@ export function ExerciseCard({
 
       {expanded && (
         <>
-          {exercise.last && (
+          {/* Two machines for one movement, on load scales half again apart.
+              Picking one here is what makes "last", the ghost numbers and the
+              PR below belong to the machine actually in front of you. */}
+          {exercise.variants.length > 0 && (
+            <div
+              className={styles.variantChips}
+              role="group"
+              aria-label={`${exercise.exerciseName} variant`}
+            >
+              {/* Logged before this exercise had variants: shown as recorded
+                  rather than guessed at, and gone as soon as one is picked. */}
+              {exercise.variant === null && (
+                <span className={`${styles.variantChip} ${styles.variantChipOn}`}>
+                  unspecified
+                </span>
+              )}
+              {exercise.variants.map((v) => {
+                const on = sameVariant(v, exercise.variant);
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    className={on ? `${styles.variantChip} ${styles.variantChipOn}` : styles.variantChip}
+                    aria-pressed={on}
+                    onClick={() => onVariantChange(v)}
+                  >
+                    {v}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {exercise.last ? (
             <p className={styles.lastLine}>
               <span className={styles.lastLabel}>last ({formatShort(exercise.last.date)}):</span>{' '}
               {formatSets(exercise.last.sets)}
               {exercise.last.variation ? ` (${exercise.last.variation})` : ''}
             </p>
+          ) : (
+            exercise.variant !== null && (
+              <p className={styles.lastLine}>
+                <span className={styles.lastLabel}>last:</span> nothing logged on{' '}
+                {exercise.variant} yet
+              </p>
+            )
           )}
 
           {pr && (

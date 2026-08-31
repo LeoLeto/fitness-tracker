@@ -9,6 +9,18 @@ interface ExerciseManagerProps {
   onChanged: () => void;
 }
 
+/** Comma-separated for editing; blank means the exercise has only one form. */
+function variantsToText(variants: string[]): string {
+  return variants.join(', ');
+}
+
+function variantsFromText(text: string): string[] {
+  return text
+    .split(',')
+    .map((v) => v.trim())
+    .filter((v) => v !== '');
+}
+
 /** Add / edit / reorder / archive the routine's exercise catalog. */
 export function ExerciseManager({ routine, exercises, onChanged }: ExerciseManagerProps) {
   const [newName, setNewName] = useState('');
@@ -70,6 +82,18 @@ export function ExerciseManager({ routine, exercises, onChanged }: ExerciseManag
               onBlur={(e) => {
                 if (e.target.value !== ex.setupNotes) {
                   void run(() => api.updateExercise(ex.id, { ...ex, setupNotes: e.target.value }));
+                }
+              }}
+            />
+            <input
+              type="text"
+              defaultValue={variantsToText(ex.variants)}
+              placeholder="variants, e.g. Cable, Chest supported"
+              aria-label="Variants"
+              onBlur={(e) => {
+                const variants = variantsFromText(e.target.value);
+                if (variantsToText(variants) !== variantsToText(ex.variants)) {
+                  void run(() => api.updateExercise(ex.id, { ...ex, variants }));
                 }
               }}
             />
@@ -135,6 +159,14 @@ export function ExerciseManager({ routine, exercises, onChanged }: ExerciseManag
           Add
         </button>
       </div>
+
+      <p className={styles.managerHint}>
+        Variants are the machines or forms one movement is trained on when their loads
+        aren&apos;t comparable — the low row on the cable stack vs. chest-supported. Each keeps
+        its own &ldquo;last time&rdquo; and its own PR, and the first is the default. Sessions
+        logged before a variant existed stay marked &ldquo;unspecified&rdquo; until they&apos;re
+        backfilled.
+      </p>
     </div>
   );
 }

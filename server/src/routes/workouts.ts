@@ -4,6 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { parseRangeQuery, rangeFilter } from '../utils/rangeQuery';
 import { parseSessionLine } from '../workouts/notation';
 import { LastPerformance } from '../workouts/types';
+import { perfKey } from '../workouts/variants';
 import { validateWorkout } from '../workouts/validation';
 
 export const workoutsRouter = Router();
@@ -54,6 +55,9 @@ workoutsRouter.get(
  * out) looked as though it had never been done. Walking back over recent
  * sessions instead gives every exercise its own last performance, whichever
  * day — or routine — it happened on.
+ *
+ * One record per (exercise, variant): the low row done chest-supported must not
+ * report the cable stack's numbers, whose loads are half again as heavy.
  */
 workoutsRouter.get(
   '/last-by-exercise',
@@ -71,10 +75,11 @@ workoutsRouter.get(
       const workout = serializeWorkout(doc as Record<string, unknown>);
       for (const ex of workout.exercises) {
         if (ex.sets.length === 0) continue;
-        const key = ex.exerciseName.trim().toLowerCase();
+        const key = perfKey(ex.exerciseName, ex.variant);
         if (latest.has(key)) continue; // documents arrive newest first
         latest.set(key, {
           exerciseName: ex.exerciseName,
+          variant: ex.variant,
           date: workout.date,
           routine: workout.routine,
           variation: ex.variation,

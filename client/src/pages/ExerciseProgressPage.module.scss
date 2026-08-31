@@ -56,3 +56,21 @@
   color: var(--text-faint);
   font-size: 12px;
 }
+
+// Drops the variant filter, to compare the machines against each other.
+.variantToggle {
+  align-self: flex-start;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}

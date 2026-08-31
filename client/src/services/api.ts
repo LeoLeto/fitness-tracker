@@ -90,11 +90,15 @@ export const api = {
   getWeekly: () => request<WeeklySummary[]>('/analytics/weekly'),
   getTimeline: (from?: string, to?: string) =>
     request<TimelinePayload>(`/analytics/timeline${rangeQuery(from, to)}`),
-  getStrengthSeries: (exercise: string) =>
-    request<{ exercise: string; points: ExerciseSessionPoint[] }>(
-      `/analytics/strength?exercise=${encodeURIComponent(exercise)}`
-    ),
-  /** All-time best set per exercise, across every routine. */
+  /** Session series for one exercise, optionally narrowed to one variant. */
+  getStrengthSeries: (exercise: string, variant?: string | null) => {
+    const params = new URLSearchParams({ exercise });
+    if (variant) params.set('variant', variant);
+    return request<{ exercise: string; variant: string | null; points: ExerciseSessionPoint[] }>(
+      `/analytics/strength?${params.toString()}`
+    );
+  },
+  /** All-time best set per exercise and variant, across every routine. */
   getPersonalBests: async (): Promise<PersonalBest[]> =>
     (await request<{ records: PersonalBest[] }>('/analytics/records')).records,
 

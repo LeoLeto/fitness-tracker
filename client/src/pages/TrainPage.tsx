@@ -9,8 +9,10 @@ import {
   editorFromWorkout,
   EditorExercise,
   emptyEditorSet,
+  lastByKeyFrom,
   loggedSets,
   orderMovedFor,
+  withVariant,
 } from '../components/train/editorTypes';
 import { useToast } from '../components/Toast';
 import { useApi } from '../hooks/useApi';
@@ -18,6 +20,7 @@ import { api } from '../services/api';
 import { LastPerformance, Workout } from '../types';
 import { addDays, formatMedium, todayStr } from '../utils/dates';
 import { parseDecimal } from '../utils/numeric';
+import { perfKey } from '../utils/variants';
 import { ROUTINE_ORDER, routineLabel, workoutSummary } from '../utils/workouts';
 import pageStyles from '../styles/page.module.scss';
 import styles from '../components/train/train.module.scss';
@@ -50,9 +53,10 @@ export function TrainPage() {
   // All-time bests for every exercise: one fetch that survives routine switches.
   const records = useApi(() => api.getPersonalBests(), []);
 
-  const prByExercise = useMemo(
-    () =>
-      new Map((records.data ?? []).map((r) => [r.exerciseName.trim().toLowerCase(), r])),
+  // Keyed by exercise *and* variant: the cable low row's record is not a
+  // target on the chest-supported machine, and vice versa.
+  const prByKey = useMemo(
+    () => new Map((records.data ?? []).map((r) => [perfKey(r.exerciseName, r.variant), r])),
     [records.data]
   );
 
@@ -101,10 +105,8 @@ export function TrainPage() {
         const catalog = (allExercises.data ?? [])
           .filter((e) => e.routine === routine && !e.archived)
           .sort((a, b) => a.orderIndex - b.orderIndex);
-        const lastByName = new Map<string, LastPerformance>(
-          lastRecords.map((r) => [r.exerciseName.trim().toLowerCase(), r])
-        );
-        const next = editorFromWorkout(workout, catalog, lastByName);
+        lastByKeyRef.current = lastByKeyFrom(lastRecords);
+        const next = editorFromWorkout(workout, catalog, lastRecords);
         sessionKeyRef.current = `${date}|${routine}`;
         savedPayloadRef.current = JSON.stringify(buildWorkoutExercises(next).exercises);
         setExisting(workout);
@@ -147,6 +149,12 @@ export function TrainPage() {
    * swapped to, or "Delete this session" would point at the wrong workout.
    */
   const sessionKeyRef = useRef('');
+  /**
+   * Every exercise's last performance per variant, kept from the load so that
+   * switching machines mid-card can re-point "last" and the ghost rows at that
+   * machine's own history without another round trip.
+   */
+  const lastByKeyRef = useRef<Map<string, LastPerformance>>(new Map());
 
   const reloadRecent = recent.reload;
   const reloadRecords = records.reload;
@@ -229,6 +237,16 @@ export function TrainPage() {
 
   const updateExercise = (i: number, next: EditorExercise) =>
     setEditor((list) => list.map((e, j) => (j === i ? next : e)));
+
+  /**
+   * Same movement, different machine. The sets already typed stay — switching
+   * is usually a correction, or a machine given up on after a set — but the
+   * numbers to beat become that machine's own.
+   */
+  const setVariant = (i: number, variant: string | null) =>
+    setEditor((list) =>
+      list.map((e, j) => (j === i ? withVariant(e, variant, lastByKeyRef.current) : e))
+    );
 
   /**
    * Only one exercise is open at a time: you do them one after another, and a
@@ -404,7 +422,7 @@ export function TrainPage() {
                     exercise={ex}
                     routine={routine}
                     date={date}
-                    pr={prByExercise.get(ex.exerciseName.trim().toLowerCase()) ?? null}
+                    pr={prByKey.get(perfKey(ex.exerciseName, ex.variant)) ?? null}
                     orderMoved={moved[i]}
                     expanded={openIndex === i}
                     canMoveUp={i > 0}
@@ -417,6 +435,7 @@ export function TrainPage() {
                       .map((other) => other.exerciseName)}
                     onToggle={() => toggleExercise(i)}
                     onChange={(next) => updateExercise(i, next)}
+                    onVariantChange={(variant) => setVariant(i, variant)}
                     onMove={(dir) => moveExercise(i, dir)}
                     onSwapTo={(name) => swapTo(i, name)}
                   />

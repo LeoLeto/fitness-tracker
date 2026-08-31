@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "import:raw": "tsx src/scripts/importRaw.ts",
-    "seed:foods": "tsx src/scripts/seedFoodLibrary.ts"
+    "seed:foods": "tsx src/scripts/seedFoodLibrary.ts",
+    "backfill:variants": "tsx src/scripts/backfillVariants.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

@@ -85,6 +85,8 @@ export function validateWorkout(body: unknown): ValidationResult<Omit<Workout, '
     }
     const variation = str(ex.variation, 200);
     if (variation === 'invalid') errors.push(`exercise ${i + 1}: variation is too long`);
+    const variant = str(ex.variant, 60);
+    if (variant === 'invalid') errors.push(`exercise ${i + 1}: variant is too long`);
     const swappedFrom = str(ex.swappedFrom, 100);
     if (swappedFrom === 'invalid') errors.push(`exercise ${i + 1}: swappedFrom is too long`);
     const rawSets = Array.isArray(ex.sets) ? ex.sets : [];
@@ -98,6 +100,7 @@ export function validateWorkout(body: unknown): ValidationResult<Omit<Workout, '
       order: typeof ex.order === 'number' && Number.isInteger(ex.order) ? ex.order : i,
       orderMoved: ex.orderMoved === 'up' || ex.orderMoved === 'down' ? ex.orderMoved : null,
       variation: variation === 'invalid' ? null : variation,
+      variant: variant === 'invalid' ? null : variant,
       swappedFrom: swappedFrom === 'invalid' ? null : swappedFrom,
       sets,
     });
@@ -131,6 +134,25 @@ export function validateExercise(body: unknown): ValidationResult<Omit<Exercise,
   if (setupNotes === 'invalid') errors.push('setupNotes is too long');
   const orderIndex = num(b.orderIndex, 0, 1000, true);
   if (orderIndex === 'invalid') errors.push('orderIndex is invalid');
+  // Variants are a small hand-kept list of machine names, deduplicated
+  // case-insensitively so "Cable" and "cable" can't become two histories.
+  const variants: string[] = [];
+  if (b.variants !== undefined) {
+    if (!Array.isArray(b.variants)) {
+      errors.push('variants must be an array of names');
+    } else if (b.variants.length > 8) {
+      errors.push('at most 8 variants per exercise');
+    } else {
+      for (const raw of b.variants) {
+        const name = str(raw, 60);
+        if (name === 'invalid') {
+          errors.push('a variant name is too long (≤60 chars)');
+        } else if (name !== null && !variants.some((v) => v.toLowerCase() === name.toLowerCase())) {
+          variants.push(name);
+        }
+      }
+    }
+  }
 
   if (errors.length > 0) return { ok: false, errors };
   return {
@@ -141,6 +163,7 @@ export function validateExercise(body: unknown): ValidationResult<Omit<Exercise,
       setupNotes: (setupNotes as string | null) ?? '',
       isBodyweight: bool(b.isBodyweight),
       orderIndex: (orderIndex as number | null) ?? 0,
+      variants,
       archived: bool(b.archived),
     },
   };

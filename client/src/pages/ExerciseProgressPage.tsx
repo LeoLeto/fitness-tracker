@@ -20,11 +20,17 @@ import pageStyles from '../styles/page.module.scss';
 import styles from './ExerciseProgressPage.module.scss';
 
 export function ExerciseProgressPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const name = searchParams.get('name') ?? '';
   const routine = searchParams.get('routine') ?? '';
+  /**
+   * Which named form of the movement to plot. Arriving from a card carries its
+   * variant, because two machines on different load scales make one line
+   * zig-zag between them instead of showing a trend.
+   */
+  const variant = searchParams.get('variant') ?? '';
 
-  const series = useApi(() => api.getStrengthSeries(name), [name]);
+  const series = useApi(() => api.getStrengthSeries(name, variant), [name, variant]);
   const colors = useChartColors();
 
   const points = series.data?.points ?? [];
@@ -62,14 +68,36 @@ export function ExerciseProgressPage() {
           ‹ Back to Train
         </Link>
         <h1>{name}</h1>
-        {routine && <p className="muted">{routineLabel(routine)} routine</p>}
+        {routine && (
+          <p className="muted">
+            {routineLabel(routine)} routine
+            {variant && ` · ${variant}`}
+          </p>
+        )}
+        {variant && (
+          <button
+            type="button"
+            className={styles.variantToggle}
+            onClick={() => {
+              const next = new URLSearchParams(searchParams);
+              next.delete('variant');
+              setSearchParams(next);
+            }}
+          >
+            Show every variant together
+          </button>
+        )}
       </div>
 
       {series.error && <div className={pageStyles.error}>{series.error}</div>}
       {series.loading && <div className={pageStyles.loading}>Loading…</div>}
 
       {!series.loading && points.length === 0 && (
-        <div className="card">No sessions logged for this exercise yet.</div>
+        <div className="card">
+          {variant
+            ? `No sessions logged for this exercise on ${variant} yet.`
+            : 'No sessions logged for this exercise yet.'}
+        </div>
       )}
 
       {points.length > 1 && firstDate && (
@@ -161,6 +189,10 @@ export function ExerciseProgressPage() {
                     <td>
                       {p.hadPain && '🚨'}
                       {p.hadBadForm && '✱'}
+                      {/* Only worth a column when the series mixes them. */}
+                      {!variant && p.variant && (
+                        <span className={styles.variation}> [{p.variant}]</span>
+                      )}
                       {p.variation && <span className={styles.variation}> {p.variation}</span>}
                     </td>
                   </tr>

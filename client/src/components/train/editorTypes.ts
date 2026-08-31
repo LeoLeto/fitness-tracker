@@ -1,5 +1,6 @@
 import { LastPerformance, Workout, WorkoutExercise, WorkoutSet } from '../../types';
 import { parseDecimal } from '../../utils/numeric';
+import { defaultVariant, perfKey } from '../../utils/variants';
 
 /** Form state for one set (numbers kept as strings while typing). */
 export interface EditorSet {
@@ -21,10 +22,18 @@ export interface EditorExercise {
   /** Position in the routine's default order — the reference for ⬆️/⬇️ badges. */
   defaultIndex: number;
   variation: string;
+  /** The catalog's named forms of this movement; empty when it has only one. */
+  variants: string[];
+  /**
+   * Which of them this session is on. It is the key the card's history is read
+   * under, so switching it swaps out `last` (and the PR the page passes down)
+   * for that machine's own numbers.
+   */
+  variant: string | null;
   /** Set when this exercise took over from another one mid-session (⇄). */
   swappedFrom: string | null;
   sets: EditorSet[];
-  /** Last time this exercise was performed — ghost text and the "last" line. */
+  /** Last time this exercise was performed on this variant — ghosts + "last". */
   last: LastPerformance | null;
 }
 
@@ -133,6 +142,7 @@ export function buildWorkoutExercises(
       order: exercises.length,
       orderMoved: moved[i],
       variation: ex.variation.trim() === '' ? null : ex.variation.trim(),
+      variant: ex.variant,
       swappedFrom: ex.swappedFrom,
       sets,
     });
@@ -141,17 +151,69 @@ export function buildWorkoutExercises(
   return { exercises, errors };
 }
 
+/** Catalog shape the editor needs — the fields that seed a card. */
+export interface CatalogExercise {
+  id: string;
+  name: string;
+  setupNotes: string;
+  isBodyweight: boolean;
+  orderIndex: number;
+  variants: string[];
+}
+
+/**
+ * Last performances indexed by (exercise, variant). Keying on the pair is what
+ * keeps the low row's chest-supported numbers away from the cable stack's,
+ * whose loads are half again as heavy.
+ */
+export function lastByKeyFrom(records: LastPerformance[]): Map<string, LastPerformance> {
+  return new Map(records.map((r) => [perfKey(r.exerciseName, r.variant), r]));
+}
+
+/**
+ * The most recent performance of each exercise whatever variant it was on —
+ * which machine an untouched card should open on.
+ */
+function latestByName(records: LastPerformance[]): Map<string, LastPerformance> {
+  const latest = new Map<string, LastPerformance>();
+  for (const r of records) {
+    const key = r.exerciseName.trim().toLowerCase();
+    const seen = latest.get(key);
+    if (seen === undefined || r.date > seen.date) latest.set(key, r);
+  }
+  return latest;
+}
+
+/**
+ * Points an exercise at another variant, together with the history that goes
+ * with it: the "last" line, the ghost placeholders and (via the page's PR
+ * lookup) the record to beat all follow the machine you're actually on.
+ */
+export function withVariant(
+  ex: EditorExercise,
+  variant: string | null,
+  lastByKey: Map<string, LastPerformance>
+): EditorExercise {
+  return {
+    ...ex,
+    variant,
+    last: lastByKey.get(perfKey(ex.exerciseName, variant)) ?? null,
+  };
+}
+
 export function editorFromWorkout(
   workout: Workout | null,
-  catalog: { id: string; name: string; setupNotes: string; isBodyweight: boolean; orderIndex: number }[],
+  catalog: CatalogExercise[],
   /**
-   * Last performance per exercise, keyed by lower-cased name. Looked up per
-   * exercise rather than per session: a movement skipped last time still has a
-   * "previous" to show.
+   * Last performance per exercise and variant. Looked up per exercise rather
+   * than per session: a movement skipped last time still has a "previous" to
+   * show.
    */
-  lastByName: Map<string, LastPerformance>
+  lastRecords: LastPerformance[]
 ): EditorExercise[] {
   const catalogByName = new Map(catalog.map((c) => [c.name.toLowerCase(), c]));
+  const lastByKey = lastByKeyFrom(lastRecords);
+  const latest = latestByName(lastRecords);
 
   const list: EditorExercise[] = [];
   const seen = new Set<string>();
@@ -159,6 +221,10 @@ export function editorFromWorkout(
   // Exercises already logged that day, in their performed order.
   for (const ex of [...(workout?.exercises ?? [])].sort((a, b) => a.order - b.order)) {
     const cat = catalogByName.get(ex.exerciseName.toLowerCase());
+    // What was recorded, not what would be chosen now: a session logged before
+    // the exercise had variants keeps its blank one rather than being silently
+    // reassigned to a machine it may not have been done on.
+    const variant = ex.variant ?? null;
     list.push({
       exerciseId: ex.exerciseId ?? cat?.id ?? null,
       exerciseName: ex.exerciseName,
@@ -166,9 +232,11 @@ export function editorFromWorkout(
       isBodyweight: cat?.isBodyweight ?? ex.sets.every((s) => s.weightKg === null),
       defaultIndex: cat?.orderIndex ?? 1000 + list.length,
       variation: ex.variation ?? '',
+      variants: cat?.variants ?? [],
+      variant,
       swappedFrom: ex.swappedFrom ?? null,
       sets: ex.sets.map(setFromWorkout),
-      last: lastByName.get(ex.exerciseName.toLowerCase()) ?? null,
+      last: lastByKey.get(perfKey(ex.exerciseName, variant)) ?? null,
     });
     seen.add(ex.exerciseName.toLowerCase());
   }
@@ -176,6 +244,7 @@ export function editorFromWorkout(
   // Remaining catalog exercises, ready to fill in.
   for (const c of catalog) {
     if (seen.has(c.name.toLowerCase())) continue;
+    const variant = defaultVariant(c.variants, latest.get(c.name.toLowerCase())?.variant);
     list.push({
       exerciseId: c.id,
       exerciseName: c.name,
@@ -183,9 +252,11 @@ export function editorFromWorkout(
       isBodyweight: c.isBodyweight,
       defaultIndex: c.orderIndex,
       variation: '',
+      variants: c.variants,
+      variant,
       swappedFrom: null,
       sets: [],
-      last: lastByName.get(c.name.toLowerCase()) ?? null,
+      last: lastByKey.get(perfKey(c.name, variant)) ?? null,
     });
   }
 
