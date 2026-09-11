@@ -89,6 +89,25 @@ describe('sessionPoint', () => {
   });
 });
 
+describe('session sets', () => {
+  it('carries every set of the session, in performed order', () => {
+    const w = workout('2026-08-01', 'push', [
+      { name: 'Chest press', sets: [set(100, 8), set(90, 7, 2), set(80, 6, 0, { badForm: true })] },
+    ]);
+    const [point] = exerciseSeries([w], 'Chest press');
+
+    // The aggregates say whether the session was good; the sets say how.
+    expect(point.totalSets).toBe(3);
+    expect(point.sets.map((s) => [s.weightKg, s.reps])).toEqual([
+      [100, 8],
+      [90, 7],
+      [80, 6],
+    ]);
+    expect(point.sets[1].rir).toBe(2);
+    expect(point.sets[2].badForm).toBe(true);
+  });
+});
+
 describe('exerciseSeries', () => {
   it('collects sessions chronologically, matching name case-insensitively', () => {
     const workouts = [

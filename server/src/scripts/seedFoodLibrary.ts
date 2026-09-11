@@ -116,9 +116,10 @@ const WEIGHED: SeedFood[] = [
     notes: '1 tsp ≈ 5 g',
   },
 
-  // ── Flours & sugar ────────────────────────────────────────────────────────
-  // Dry weight, before any water goes in: the flour is what you weigh, and the
-  // arepa or the cake it becomes has no weight worth logging.
+  // ── Grains, flours & sugar ────────────────────────────────────────────────
+  // Dry weight, before any water goes in: the flour or the oats are what you
+  // weigh, and the arepa or the porridge they become has no weight worth
+  // logging.
   {
     name: 'Harina PAN',
     unit: 'g',
@@ -148,6 +149,19 @@ const WEIGHED: SeedFood[] = [
     fiberG: null,
     portions: [],
     notes: 'Wheat flour, dry weight',
+  },
+  {
+    name: 'Oats',
+    unit: 'g',
+    category: 'pantry',
+    basisQty: 100,
+    calories: 389,
+    proteinG: 17,
+    carbsG: 66,
+    fatG: 6.9,
+    fiberG: 11,
+    portions: [],
+    notes: 'Rolled oats, dry weight',
   },
   {
     name: 'Sugar',

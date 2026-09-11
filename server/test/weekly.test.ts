@@ -11,6 +11,7 @@ function entry(date: string, fields: Partial<DailyEntry>): DailyEntry {
     carbsG: null,
     fatG: null,
     fiberG: null,
+    caloriesIncomplete: null,
     bowelMovement: null,
     weighedTime: null,
     beforeFood: null,
@@ -53,6 +54,22 @@ describe('buildWeeklySummaries', () => {
     expect(recent.avgWeight).toBeCloseTo(63.8, 10);
     expect(recent.changeVsPrevWeekKg).toBeCloseTo(63.8 - 63.5, 10);
     expect(recent.notes).toEqual([{ date: '2026-08-03', text: 'Normal day' }]);
+  });
+
+  it('excludes days with an incomplete food log from the weekly food averages', () => {
+    const weeks = buildWeeklySummaries([
+      entry('2026-08-03', { weightKg: 63.7, calories: 2100, proteinG: 150 }),
+      entry('2026-08-04', { weightKg: 63.8, calories: 300, proteinG: 20, caloriesIncomplete: true }),
+      entry('2026-08-05', { weightKg: 63.9, calories: 2300, proteinG: 170 }),
+    ]);
+
+    const [week] = weeks;
+    expect(week.calorieDays).toBe(2);
+    expect(week.avgCalories).toBeCloseTo(2200, 10);
+    expect(week.proteinDays).toBe(2);
+    expect(week.avgProtein).toBeCloseTo(160, 10);
+    // The weigh-ins are untouched.
+    expect(week.weighIns).toBe(3);
   });
 
   it('omits within-week trend with fewer than 3 weigh-ins', () => {

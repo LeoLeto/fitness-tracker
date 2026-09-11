@@ -13,7 +13,26 @@ export function average(values: number[]): number | null {
 
 type NumericField = 'weightKg' | 'calories' | 'proteinG' | 'carbsG' | 'fatG' | 'fiberG';
 
-/** Non-null values of `field` for entries within [from, to] (inclusive). */
+/** The fields that come from the day's food log. */
+const FOOD_FIELDS: NumericField[] = ['calories', 'proteinG', 'carbsG', 'fatG', 'fiberG'];
+
+/**
+ * Whether an entry may contribute its `field` to an average.
+ *
+ * Two ways a day can be silent. It never recorded the value — missing stays
+ * missing, never 0. Or its food log was marked incomplete: the numbers it does
+ * have are real but only part of the day, so they are kept and shown while
+ * every calorie and macro average skips them, since a half-logged day averaged
+ * in reads as a light day and drags the maintenance estimate with it. That
+ * exclusion is food-only — the weigh-in taken that morning was not partial.
+ */
+export function countsToward(entry: DailyEntry, field: NumericField): boolean {
+  if (entry[field] == null) return false;
+  if (entry.caloriesIncomplete === true && FOOD_FIELDS.includes(field)) return false;
+  return true;
+}
+
+/** Averageable values of `field` for entries within [from, to] (inclusive). */
 export function valuesInRange(
   entries: DailyEntry[],
   field: NumericField,
@@ -21,7 +40,7 @@ export function valuesInRange(
   to: string
 ): number[] {
   return entries
-    .filter((e) => e.date >= from && e.date <= to && e[field] != null)
+    .filter((e) => e.date >= from && e.date <= to && countsToward(e, field))
     .map((e) => e[field] as number);
 }
 

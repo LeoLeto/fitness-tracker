@@ -1,5 +1,5 @@
 import { DailyEntry, Profile } from '../types';
-import { average } from '../analytics/averages';
+import { average, countsToward } from '../analytics/averages';
 import { weightTrend } from '../analytics/trend';
 import { toCsv } from '../utils/csv';
 import { formatSets } from '../workouts/notation';
@@ -19,6 +19,7 @@ const CSV_HEADER = [
   'carbs_g',
   'fat_g',
   'fiber_g',
+  'calories_incomplete',
   'bowel_movement',
   'weighed_time',
   'before_food',
@@ -49,6 +50,7 @@ export function buildCsv(entries: DailyEntry[]): string {
     num(e.carbsG),
     num(e.fatG),
     num(e.fiberG),
+    yesNo(e.caloriesIncomplete),
     yesNo(e.bowelMovement),
     e.weighedTime ?? '',
     yesNo(e.beforeFood),
@@ -102,6 +104,8 @@ interface ExportSummary {
   to: string | null;
   avgCalories: number | null;
   calorieDays: number;
+  /** Days left out of the calorie average because their food log was partial. */
+  incompleteFoodDays: number;
   avgWeight: number | null;
   weightMeasurements: number;
   trendKgPerWeek: number | null;
@@ -111,7 +115,10 @@ interface ExportSummary {
 export function buildExportSummary(entries: DailyEntry[]): ExportSummary {
   const sorted = [...entries].sort((a, b) => (a.date < b.date ? -1 : 1));
   const weights = sorted.filter((e) => e.weightKg != null);
-  const calories = sorted.filter((e) => e.calories != null).map((e) => e.calories as number);
+  const calories = sorted
+    .filter((e) => countsToward(e, 'calories'))
+    .map((e) => e.calories as number);
+  const incompleteFoodDays = sorted.filter((e) => e.caloriesIncomplete === true).length;
   const trend = weightTrend(
     weights.map((e) => ({ date: e.date, weightKg: e.weightKg as number }))
   );
@@ -120,6 +127,7 @@ export function buildExportSummary(entries: DailyEntry[]): ExportSummary {
     to: sorted.length > 0 ? sorted[sorted.length - 1].date : null,
     avgCalories: average(calories),
     calorieDays: calories.length,
+    incompleteFoodDays,
     avgWeight: average(weights.map((e) => e.weightKg as number)),
     weightMeasurements: weights.length,
     trendKgPerWeek: trend ? trend.kgPerWeek : null,
@@ -162,16 +170,26 @@ export function buildMarkdown(entries: DailyEntry[]): string {
   );
   lines.push(`Weight measurements: ${s.weightMeasurements}`);
   lines.push(`Calorie-recorded days: ${s.calorieDays}`);
+  if (s.incompleteFoodDays > 0) {
+    // Said plainly because this export is read by an LLM as often as by a
+    // person: these rows carry calories that understate the day and must not
+    // be averaged back in.
+    lines.push(
+      `Days with a partial food log (excluded from the calorie average): ${s.incompleteFoodDays}` +
+        ' — marked "partial" in the Food log column; their calorie figure is incomplete.'
+    );
+  }
   lines.push(`Training days: ${s.trainingDays}`);
 
   const header =
-    '| Date | Weight (kg) | Calories | Protein | Carbs | Fat | BM | Training | Notes |';
-  const separator = '|---|---:|---:|---:|---:|---:|---|---|---|';
+    '| Date | Weight (kg) | Calories | Food log | Protein | Carbs | Fat | BM | Training | Notes |';
+  const separator = '|---|---:|---:|---|---:|---:|---:|---|---|---|';
   const rows = sorted.map((e) =>
     [
       e.date,
       e.weightKg != null ? e.weightKg.toFixed(1) : '',
       e.calories != null ? String(e.calories) : '',
+      e.caloriesIncomplete === true ? 'partial' : '',
       e.proteinG != null ? String(e.proteinG) : '',
       e.carbsG != null ? String(e.carbsG) : '',
       e.fatG != null ? String(e.fatG) : '',
@@ -329,6 +347,7 @@ export function buildChatGptPrompt(
   withWorkouts = false
 ): string {
   const target = signed(profile.targetWeightChangeKgPerWeek, 1);
+  const partialDays = entries.filter((e) => e.caloriesIncomplete === true).length;
   const prompt = `I'm tracking my calories and body weight to determine my real-world maintenance calories and target a weight change of approximately ${target} kg/week.
 
 My profile:
@@ -357,7 +376,13 @@ ${
     ? `11. Cross-reference my workout log with the weight/calorie data: strength changes during deficit periods, water-weight spikes right after resuming a muscle group (especially legs), and the effect of cardio sessions.
 `
     : ''
-}
+}${
+    partialDays > 0
+      ? `
+Note: ${partialDays} day${partialDays === 1 ? ' is' : 's are'} marked "partial" in the Food log column — the food log for ${partialDays === 1 ? 'that day' : 'those days'} is known to be incomplete, so the calorie figure understates what was actually eaten. Leave them out of every calorie and macro average rather than treating them as low-intake days.
+`
+      : ''
+  }
 Here is my data:
 
 `;

@@ -186,6 +186,56 @@
   gap: 6px;
 }
 
+// "I ate more than this, I just didn't log it" — the day stays visible and
+// editable, but stops counting towards any average.
+.incompleteToggle {
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    border-radius: 4px;
+  }
+}
+
+.incompleteCard {
+  border: 1px solid var(--warn);
+  background: var(--warn-bg);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.incompleteOn {
+  border: none;
+  background: none;
+  color: var(--warn);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    border-radius: 4px;
+  }
+}
+
+.incompleteNote {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
 .quickHeader {
   display: flex;
   align-items: center;

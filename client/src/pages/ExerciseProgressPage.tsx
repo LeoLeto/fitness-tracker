@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   CartesianGrid,
@@ -14,10 +14,38 @@ import { tickInterval, useChartColors } from '../components/charts/chartTheme';
 import { ChartLegend, ChartTooltip } from '../components/charts/ChartTooltip';
 import { useApi } from '../hooks/useApi';
 import { api } from '../services/api';
+import { WorkoutSet } from '../types';
 import { addDays, dayDiff, formatShort } from '../utils/dates';
-import { routineLabel } from '../utils/workouts';
+import { beatsPerformance, performanceOf, routineLabel } from '../utils/workouts';
 import pageStyles from '../styles/page.module.scss';
 import styles from './ExerciseProgressPage.module.scss';
+
+/**
+ * Which set the session's headline number came from — the one ranked best by
+ * the strength metric. Marked in the breakdown so the number in the row is
+ * always traceable to the set that produced it.
+ */
+function bestSetIndex(sets: WorkoutSet[]): number {
+  let bestIdx = -1;
+  let best: ReturnType<typeof performanceOf> | null = null;
+  for (let i = 0; i < sets.length; i++) {
+    const p = performanceOf(sets[i]);
+    if (best === null || beatsPerformance(p, best)) {
+      best = p;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
+/** Per-set flags, in the same marks the rest of the page uses. */
+function setFlags(s: WorkoutSet): string {
+  let out = '';
+  if (s.repsUncertain) out += '?';
+  if (s.badForm) out += '✱';
+  if (s.pain) out += '🚨';
+  return out;
+}
 
 export function ExerciseProgressPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,6 +60,12 @@ export function ExerciseProgressPage() {
 
   const series = useApi(() => api.getStrengthSeries(name, variant), [name, variant]);
   const colors = useChartColors();
+  /**
+   * Which session's set-by-set breakdown is open. One at a time: the table is
+   * for scanning sessions against each other, and the breakdown is what you
+   * drop into for the one session you're actually asking about.
+   */
+  const [openSession, setOpenSession] = useState<string | null>(null);
 
   const points = series.data?.points ?? [];
   const isBodyweight = points.length > 0 && points.every((p) => p.e1rm === null);
@@ -166,6 +200,7 @@ export function ExerciseProgressPage() {
       {points.length > 0 && (
         <div className={`card ${styles.tableCard}`}>
           <h2>Sessions</h2>
+          <p className={styles.note}>Tap a date to see that session set by set.</p>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
@@ -179,24 +214,86 @@ export function ExerciseProgressPage() {
                 </tr>
               </thead>
               <tbody>
-                {[...points].reverse().map((p) => (
-                  <tr key={p.date}>
-                    <td>{formatShort(p.date)}</td>
-                    <td>{p.e1rm != null ? p.e1rm.toFixed(1) : p.bestReps}</td>
-                    <td>{p.topWeightKg ?? 'BW'}</td>
-                    <td>{p.totalSets}</td>
-                    <td>{p.volumeKg > 0 ? Math.round(p.volumeKg) : '—'}</td>
-                    <td>
-                      {p.hadPain && '🚨'}
-                      {p.hadBadForm && '✱'}
-                      {/* Only worth a column when the series mixes them. */}
-                      {!variant && p.variant && (
-                        <span className={styles.variation}> [{p.variant}]</span>
+                {[...points].reverse().map((p) => {
+                  // Two sessions of one exercise can share a date (a movement
+                  // finished on another machine), so the workout is part of the key.
+                  const key = `${p.workoutId}:${p.date}`;
+                  const open = openSession === key;
+                  const best = open ? bestSetIndex(p.sets) : -1;
+                  return (
+                    <Fragment key={key}>
+                      <tr>
+                        <td>
+                          <button
+                            type="button"
+                            className={styles.sessionToggle}
+                            aria-expanded={open}
+                            onClick={() => setOpenSession(open ? null : key)}
+                          >
+                            <span aria-hidden="true">{open ? '▾' : '▸'}</span>{' '}
+                            {formatShort(p.date)}
+                          </button>
+                        </td>
+                        <td>{p.e1rm != null ? p.e1rm.toFixed(1) : p.bestReps}</td>
+                        <td>{p.topWeightKg ?? 'BW'}</td>
+                        <td>{p.totalSets}</td>
+                        <td>{p.volumeKg > 0 ? Math.round(p.volumeKg) : '—'}</td>
+                        <td>
+                          {p.hadPain && '🚨'}
+                          {p.hadBadForm && '✱'}
+                          {/* Only worth a column when the series mixes them. */}
+                          {!variant && p.variant && (
+                            <span className={styles.variation}> [{p.variant}]</span>
+                          )}
+                          {p.variation && <span className={styles.variation}> {p.variation}</span>}
+                        </td>
+                      </tr>
+                      {open && (
+                        <tr className={styles.setsRow}>
+                          <td colSpan={6}>
+                            <ol className={styles.setList}>
+                              {p.sets.map((s, i) => {
+                                const perf = performanceOf(s);
+                                return (
+                                  <li
+                                    key={i}
+                                    className={`${styles.setItem} ${
+                                      i === best ? styles.bestSet : ''
+                                    }`}
+                                  >
+                                    <span className={styles.setNum}>{i + 1}</span>
+                                    <span className={styles.setLoad}>
+                                      {s.weightKg != null ? `${s.weightKg} kg` : 'BW'}
+                                    </span>
+                                    <span className={styles.setReps}>
+                                      ×{s.reps}
+                                      {setFlags(s)}
+                                    </span>
+                                    <span className={styles.setRir}>
+                                      {s.rir != null ? `${s.rir} RIR` : ''}
+                                    </span>
+                                    <span className={styles.setMetric}>
+                                      {perf.e1rm != null
+                                        ? `${perf.e1rm.toFixed(1)} kg e1RM`
+                                        : `${perf.effectiveReps} eff. reps`}
+                                    </span>
+                                    {(s.isDropSet || s.note) && (
+                                      <span className={styles.setNote}>
+                                        {s.isDropSet && 'drop set'}
+                                        {s.isDropSet && s.note ? ' · ' : ''}
+                                        {s.note}
+                                      </span>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                            </ol>
+                          </td>
+                        </tr>
                       )}
-                      {p.variation && <span className={styles.variation}> {p.variation}</span>}
-                    </td>
-                  </tr>
-                ))}
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -1,3 +1,4 @@
+import { countsToward } from '../analytics/averages';
 import { DailyEntry } from '../types';
 import {
   fluidRetentionEvents,
@@ -50,7 +51,9 @@ export function buildTimeline(
       .filter((e) => inRange(e.date) && e.weightKg != null)
       .map((e) => ({ date: e.date, weightKg: e.weightKg as number })),
     calories: entries
-      .filter((e) => inRange(e.date) && e.calories != null)
+      // A day marked as an incomplete food log would draw a dip that never
+      // happened, so it is left off the series rather than plotted low.
+      .filter((e) => inRange(e.date) && countsToward(e, 'calories'))
       .map((e) => ({ date: e.date, calories: e.calories as number })),
     strengthIndex: strengthIndexWeekly(rangeWorkouts),
     training: weeklyTraining(rangeWorkouts),

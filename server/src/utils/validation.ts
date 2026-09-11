@@ -122,6 +122,7 @@ export function validateEntry(body: unknown, dateOverride?: string): ValidationR
     carbsG: parseOptionalNumber(b.carbsG, { min: 0, max: 3000 }),
     fatG: parseOptionalNumber(b.fatG, { min: 0, max: 1500 }),
     fiberG: parseOptionalNumber(b.fiberG, { min: 0, max: 500 }),
+    caloriesIncomplete: parseOptionalBool(b.caloriesIncomplete),
     bowelMovement: parseOptionalBool(b.bowelMovement),
     weighedTime: parseOptionalString(b.weighedTime, 5),
     beforeFood: parseOptionalBool(b.beforeFood),
@@ -182,7 +183,13 @@ export function validateEntryPatch(body: unknown): ValidationResult<Partial<Entr
     else (patch as Record<string, unknown>)[key] = v;
   }
 
-  for (const key of ['bowelMovement', 'beforeFood', 'afterBowelMovement', 'trained']) {
+  for (const key of [
+    'caloriesIncomplete',
+    'bowelMovement',
+    'beforeFood',
+    'afterBowelMovement',
+    'trained',
+  ]) {
     if (!(key in b)) continue;
     const v = parseOptionalBool(b[key]);
     if (v === 'invalid') errors.push(`${key} is invalid`);

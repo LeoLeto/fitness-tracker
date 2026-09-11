@@ -57,6 +57,76 @@
   font-size: 12px;
 }
 
+// The date doubles as the disclosure for that session's set-by-set breakdown.
+.sessionToggle {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text);
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.setsRow td {
+  padding: 2px 0 10px;
+}
+
+.setList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+// Columns rather than a sentence: reading down a session, what you compare is
+// the load and the reps falling off, and those have to line up to be scannable.
+.setItem {
+  display: grid;
+  grid-template-columns: 16px minmax(46px, auto) minmax(46px, auto) minmax(46px, auto) auto;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 2px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+// The set the row's headline number came from.
+.bestSet {
+  background: var(--surface-2);
+  font-weight: 600;
+}
+
+.setNum {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.setLoad,
+.setReps {
+  white-space: nowrap;
+}
+
+.setRir,
+.setMetric {
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.setNote {
+  grid-column: 2 / -1;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
 // Drops the variant filter, to compare the machines against each other.
 .variantToggle {
   align-self: flex-start;

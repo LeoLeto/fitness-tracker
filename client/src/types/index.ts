@@ -109,6 +109,12 @@ export interface DailyEntry {
   carbsG: number | null;
   fatG: number | null;
   fiberG: number | null;
+  /**
+   * The day's food log is known to be incomplete. What was logged is kept, but
+   * the day is left out of every calorie and macro average; the weigh-in still
+   * counts.
+   */
+  caloriesIncomplete: boolean | null;
   bowelMovement: boolean | null;
   weighedTime: string | null;
   beforeFood: boolean | null;
@@ -295,6 +301,8 @@ export interface ExerciseSessionPoint {
   hadBadForm: boolean;
   variation: string | null;
   variant: string | null;
+  /** The sets exactly as logged, in performed order. */
+  sets: WorkoutSet[];
 }
 
 /** All-time best single set of one exercise — the logger's target to beat. */

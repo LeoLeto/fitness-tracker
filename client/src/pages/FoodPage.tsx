@@ -116,6 +116,13 @@ export function FoodPage() {
   const [mode, setMode] = useState<'meals' | 'total'>('meals');
   const [dayTotal, setDayTotal] = useState({ calories: '', protein: '', carbs: '', fat: '' });
   const [dirty, setDirty] = useState(false);
+  /**
+   * The day's food log is known to be incomplete — meals were eaten that never
+   * made it in. Saved on its own the moment it's tapped rather than riding
+   * along with the meal rows: it's a fact about the day, not an edit to it,
+   * and the day it describes is usually one you've already stopped logging.
+   */
+  const [incomplete, setIncomplete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(true);
@@ -165,6 +172,7 @@ export function FoodPage() {
       setMode('meals');
       setDayTotal({ calories: '', protein: '', carbs: '', fat: '' });
     }
+    setIncomplete(entry?.caloriesIncomplete === true);
     setDirty(false);
     // Reached on every load and after every save: a freshly persisted day is
     // exactly the case where the meal list has nothing left to say.
@@ -334,6 +342,27 @@ export function FoodPage() {
     }
   };
 
+  /**
+   * Marks (or unmarks) the day as one whose food log never got finished.
+   * Cleared back to `null` rather than `false`: an ordinary day isn't a day
+   * asserted to be complete, it's a day nobody said anything about.
+   */
+  const markIncomplete = async (next: boolean) => {
+    setIncomplete(next); // optimistic: a checkbox that lags feels broken
+    setError(null);
+    setSaving(true);
+    try {
+      await api.patchEntry(date, { caloriesIncomplete: next ? true : null });
+      allEntries.reload();
+      show(next ? 'Day left out of calorie averages' : 'Day counts again');
+    } catch (err) {
+      setIncomplete(!next);
+      setError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveMeals = async () => {
     const serialized = mealsFromRows(rows);
     if ('error' in serialized) {
@@ -489,6 +518,26 @@ export function FoodPage() {
           </div>
         )}
       </section>
+
+      <div className={incomplete ? styles.incompleteCard : undefined}>
+        <button
+          type="button"
+          className={incomplete ? styles.incompleteOn : styles.incompleteToggle}
+          aria-pressed={incomplete}
+          disabled={saving}
+          onClick={() => void markIncomplete(!incomplete)}
+        >
+          <span aria-hidden="true">{incomplete ? '☑' : '☐'}</span>{' '}
+          {incomplete ? "Food log incomplete — day not counted" : "Couldn't log everything today"}
+        </button>
+        {incomplete && (
+          <p className={styles.incompleteNote}>
+            Whatever is logged stays logged, but this day is left out of the calorie and macro
+            averages and off the charts — so a day you couldn't finish logging doesn't read as a
+            light one.
+          </p>
+        )}
+      </div>
 
       <div className={styles.quickHeader}>
         <button

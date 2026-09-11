@@ -1,5 +1,5 @@
 import { DailyEntry, WeeklySummary } from '../types';
-import { average } from './averages';
+import { average, countsToward } from './averages';
 import { weightTrend } from './trend';
 import { addDays, weekStartOf } from '../utils/dates';
 import { Workout } from '../workouts/types';
@@ -45,8 +45,14 @@ export function buildWeeklySummaries(
     const weekWorkouts = workoutsByWeek.get(weekStart) ?? [];
 
     const weights = weekEntries.filter((e) => e.weightKg != null).map((e) => e.weightKg as number);
-    const calories = weekEntries.filter((e) => e.calories != null).map((e) => e.calories as number);
-    const protein = weekEntries.filter((e) => e.proteinG != null).map((e) => e.proteinG as number);
+    // Days whose food log was marked incomplete contribute nothing to the
+    // food averages — see `countsToward`.
+    const calories = weekEntries
+      .filter((e) => countsToward(e, 'calories'))
+      .map((e) => e.calories as number);
+    const protein = weekEntries
+      .filter((e) => countsToward(e, 'proteinG'))
+      .map((e) => e.proteinG as number);
 
     const avgWeight = average(weights);
     const points = weekEntries

@@ -104,10 +104,10 @@ in exports.
 |---|---|
 | **Dashboard** | Current weight, 7/14/28-day averages (with measurement counts), weight trend vs target, calorie & macro averages, this week's training, weight/calorie/combined charts, quick date ranges (7d…1y, custom). |
 | **Weigh-in** | One card that fits a phone screen without scrolling: body weight, the previous weigh-in with the day-over-day delta, and the two optional conditions (before food, after bowel movement). The time is stamped at save rather than typed — you log the number when you step off the scale — and a time already recorded is never overwritten. |
-| **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), calories and optional protein/carbs/fat/fiber (the time is stamped when the meal is logged, not typed). The running day total is shown against your calorie target with the amount remaining. **Quick add** logs from the food library in one tap — a whole meal template, every meal of the day at once, or a single food at one of its usual portions — and saves it immediately, with a 5-second **Undo** in the toast. A third **Weigh** tab lists fruit and vegetables for the times you cut a wedge off a pumpkin and put it on the scale: type the grams, see the calories update, log it. Meals already eaten stay **folded behind their count** (tap to edit) and every save returns you to the day total at the top. A day can also be logged as one total, and an existing total can be split into meals without losing the number. |
-| **Food library** | Reusable foods and meal templates. A food stores its nutrition per a reference amount (per 100 ml, per 1 egg, per 50 g) plus the portions worth a one-tap button, so any quantity scales correctly. Each food is filed as a staple, a fruit or a vegetable; the last two are what the Weigh tab offers. Templates are lists of foods with quantities, and both their totals and their written-out recipe are computed from the library — editing a food updates every template that uses it. |
+| **Food** | Meal-by-meal logging that accumulates the day: each meal has a label (auto-suggested from labels used before), calories and optional protein/carbs/fat/fiber (the time is stamped when the meal is logged, not typed). The running day total is shown against your calorie target with the amount remaining. **Quick add** logs from the food library in one tap — a whole meal template, every meal of the day at once, or a single food at one of its usual portions — and saves it immediately, with a 5-second **Undo** in the toast. A third **Weigh** tab lists fruit and vegetables for the times you cut a wedge off a pumpkin and put it on the scale: type the grams, see the calories update, log it. Meals already eaten stay **folded behind their count** (tap to edit) and every save returns you to the day total at the top. A day can also be logged as one total, and an existing total can be split into meals without losing the number. A day you couldn't finish logging is marked **“Couldn't log everything today”**: what you did log stays, but the day is left out of every calorie and macro average and off the charts, instead of reading as a light day. |
+| **Food library** | Reusable foods and meal templates. A food stores its nutrition per a reference amount (per 100 ml, per 1 egg, per 50 g) plus the portions worth a one-tap button, so any quantity scales correctly. Each food is filed as a staple, a fruit, a vegetable, dairy, a pantry item (grains, flours, sugar) or a dressing; everything but the staples is what the Weigh tab offers, grouped by category. Templates are lists of foods with quantities, and both their totals and their written-out recipe are computed from the library — editing a food updates every template that uses it. |
 | **Train** | Workout logger built for one hand between sets. Pick a routine (Push/Pull/Legs/Abs/Cardio); tapping an exercise opens it with an empty set ready and collapses the previous one, which stays on screen as its raw notation. A set is one full-width line — weight, reps, one-tap RIR (0–4), flag chips — and filling one opens the next automatically. **Everything saves as you type**, with no Save button. Each exercise shows **ghosts of the last time you did it** (its weight/reps/RIR inside the empty fields, plus the remaining sets listed below them) and its **all-time PR with a live "new PR" flag**. Reorder with ↑↓ (order swaps are recorded), note a variation behind **+ comment**, record a mid-session **⇄ swap**, log cardio (type + minutes), and manage exercises (setup notes, bodyweight flag, ordering, archive). |
-| **Exercise progress** | Per-exercise chart of estimated 1RM (or best reps for bodyweight work) over real calendar time, with pain/form-flagged sessions marked, plus a session table. |
+| **Exercise progress** | Per-exercise chart of estimated 1RM (or best reps for bodyweight work) over real calendar time, with pain/form-flagged sessions marked, plus a session table. Tapping a session's date opens it **set by set** — every set's load, reps, RIR, flags and note, with the set that produced the session's headline number highlighted. Arriving from an exercise card the page is scoped to that **variant**; one tap drops the filter to compare the forms against each other. |
 | **History** | All entries — tap a day to edit its weigh-in, tap the calorie figure to edit its food, or delete the day. |
 | **Weekly Review** | Monday–Sunday summaries: average weight, weigh-ins, calories, protein, within-week trend, change vs previous week, training days, sessions per routine, cardio minutes, notes. |
 | **Analysis** | **Body & Training timeline** (three date-aligned panels: weight with energy-balance bands + event markers, strength index per routine, weekly sessions stacked by routine + cardio), **Insights** (detected events and periods), maintenance-calorie estimate, suggested intake, rules-based recommendation, and a manually controlled "current calorie target". |
@@ -133,6 +133,30 @@ compact notation used in the original paper logs:
   this exercise instead — e.g. a cable low row that hurt, carried on as a
   chest-supported row. Both exercises keep the sets actually performed, and the
   link stops a two-set exercise reading as a bad day.
+
+### Exercise variants
+
+A movement can be trained in named forms that share a name and a slot in the
+routine but not a load scale — the low row pulls 45 kg on the cable stack and
+30 kg chest-supported for the same effort; the chest press machine is not the
+barbell bench. Treated as one exercise they make *last time*, the PR and the
+progress chart zig-zag between the two whenever the machine changes, so
+everything that answers **what did I do last time** keys on the
+**(exercise, variant)** pair rather than the name alone.
+
+Variants are edited on the exercise in the logger's manage list (comma
+separated, e.g. `Machine, Bench press`). The first is the exercise's default,
+and a fresh log starts on whichever one you used last time — a run of sessions
+on the same machine is the norm, so the ghost numbers are right without a tap.
+This is distinct from a **variation**, which stays a free-text footnote on one
+session ("w/step", "one arm at a time") and groups nothing.
+
+`npm run backfill:variants -w server` registers the variants planned in
+`server/src/scripts/backfillVariants.ts` and assigns every past session the
+variant it was actually performed on, read off the free-text variation it was
+recorded with at the time. Dry run by default — add `-- --apply` to write. It
+is idempotent and never re-decides a session that already carries a variant,
+so adding a plan entry only touches the newly planned exercise.
 
 ### Insights (rules-based, always transparent about data used)
 
@@ -243,7 +267,10 @@ that day's meals, and vice versa.
 Raw measurements are stored exactly as entered and never replaced by smoothed
 values. Missing data stays missing (never treated as 0), every average
 reports how many data points produced it, and no conclusions are drawn from
-insufficient data.
+insufficient data. Data that is *present but partial* gets the same treatment
+from the other direction: a day whose food log was never finished is marked as
+one instead of being left to pass for a light day — the numbers stay visible
+and editable, the day stops counting towards food averages.
 
 ---
 
@@ -300,6 +327,16 @@ always display the count ("63.8 kg · 4 measurements"). Days without a value
 are excluded, never counted as zero. Chart moving averages are display
 smoothing only.
 
+A day marked **"couldn't log everything"** is the other way a day stays out of
+an average. Its calories are real but partial, and averaging them in would
+read as a light day and drag the maintenance estimate down with it — so the
+number is kept and shown while every calorie and macro average, weekly
+summary, chart series and export statistic skips the day. The exclusion is
+food-only: the weigh-in taken that morning was not partial and still counts
+towards weight averages and the trend. One predicate decides it
+(`countsToward` in `server/src/analytics/averages.ts`), so there is no way for
+one screen to count a day another screen skipped.
+
 ---
 
 ## Exporting data for ChatGPT
@@ -311,12 +348,19 @@ On the **Export** page:
   raw daily data. Paste straight into ChatGPT.
 - **Copy for ChatGPT** — the Markdown summary + table only.
 - **Download CSV** — columns: `date, weight_kg, calories, protein_g, carbs_g,
-  fat_g, fiber_g, bowel_movement, weighed_time, before_food,
-  after_bowel_movement, trained, training_type, training_duration_min, notes,
-  meal_count` (ISO dates, one decimal for weight, no MongoDB internals).
+  fat_g, fiber_g, calories_incomplete, bowel_movement, weighed_time,
+  before_food, after_bowel_movement, trained, training_type,
+  training_duration_min, notes, meal_count` (ISO dates, one decimal for
+  weight, no MongoDB internals).
 - **Download JSON** — the same raw records as JSON, meals included.
 - **Meals CSV** — one row per logged meal: `date, meal_number, label, time,
   calories, protein_g, carbs_g, fat_g, fiber_g, notes`.
+
+Days with a partial food log carry a **Food log: partial** cell in the
+Markdown table and a `calories_incomplete` column in the CSV, the summary
+block reports how many there were, and the analysis prompt tells the model to
+leave them out of its averages — so a copy-paste into ChatGPT reaches the same
+numbers the app does.
 
 All exports default to the full history; tick "Limit to a date range" to
 export a period.
@@ -383,7 +427,7 @@ input is validated server-side (dates, numeric ranges, string lengths).
 │       ├── routes/       profile, entries, foods, exercises, workouts, analytics, export
 │       ├── analytics/    trend, averages, maintenance, recommendation, weekly
 │       ├── workouts/     notation parser, strength metrics, insights, timeline
-│       ├── scripts/      importRaw (historical notes), seedFoodLibrary
+│       ├── scripts/      importRaw (historical notes), seedFoodLibrary, backfillVariants
 │       ├── services/     entry upsert, meal totals, food portions, export builders
 │       └── utils/        validation, dates, csv
 │   └── test/             Vitest suites

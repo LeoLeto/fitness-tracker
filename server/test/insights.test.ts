@@ -18,6 +18,7 @@ function entry(date: string, weightKg: number | null): DailyEntry {
     carbsG: null,
     fatG: null,
     fiberG: null,
+    caloriesIncomplete: null,
     bowelMovement: null,
     weighedTime: null,
     beforeFood: null,

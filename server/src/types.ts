@@ -32,6 +32,15 @@ export interface EntryData {
   carbsG: number | null;
   fatG: number | null;
   fiberG: number | null;
+  /**
+   * The day's food log is known to be incomplete — meals were eaten that never
+   * got entered. Whatever was logged is kept exactly as logged, but the day
+   * contributes nothing to any calorie or macro average: a half-recorded day
+   * pulls the mean down as if it had been a light one, which is worse than not
+   * having the day at all. The weigh-in is unaffected — the scale that morning
+   * was not partial.
+   */
+  caloriesIncomplete: boolean | null;
   bowelMovement: boolean | null;
   weighedTime: string | null; // "HH:MM", optional context for the weigh-in
   beforeFood: boolean | null;

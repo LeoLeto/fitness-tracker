@@ -124,6 +124,12 @@ export interface ExerciseSessionPoint {
   hadBadForm: boolean;
   variation: string | null;
   variant: string | null;
+  /**
+   * The sets exactly as logged, in performed order. The aggregates above answer
+   * "was this session better than the last one"; the sets answer "how" — which
+   * set carried the e1RM, where the reps fell off, which one was cut short.
+   */
+  sets: WorkoutSet[];
 }
 
 /**

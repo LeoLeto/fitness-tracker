@@ -18,6 +18,7 @@ function entry(date: string, fields: Partial<DailyEntry>): DailyEntry {
     carbsG: null,
     fatG: null,
     fiberG: null,
+    caloriesIncomplete: null,
     bowelMovement: null,
     weighedTime: null,
     beforeFood: null,
@@ -51,8 +52,9 @@ describe('CSV export', () => {
     const csv = buildCsv(entries);
     const lines = csv.trim().split('\r\n');
     const header =
-      'date,weight_kg,calories,protein_g,carbs_g,fat_g,fiber_g,bowel_movement,weighed_time,' +
-      'before_food,after_bowel_movement,trained,training_type,training_duration_min,notes,meal_count';
+      'date,weight_kg,calories,protein_g,carbs_g,fat_g,fiber_g,calories_incomplete,' +
+      'bowel_movement,weighed_time,before_food,after_bowel_movement,trained,training_type,' +
+      'training_duration_min,notes,meal_count';
     expect(lines[0]).toBe(header);
 
     // Field-indexed rather than comma-counted, so a new column can't quietly
@@ -102,9 +104,56 @@ describe('Markdown export', () => {
     expect(md).toContain('Period: 2026-08-03 to 2026-08-05');
     expect(md).toContain('Weight measurements: 2');
     expect(md).toContain('Calorie-recorded days: 2');
-    expect(md).toContain('| Date | Weight (kg) | Calories | Protein | Carbs | Fat | BM | Training | Notes |');
-    expect(md).toContain('|---|---:|---:|---:|---:|---:|---|---|---|');
-    expect(md).toContain('| 2026-08-03 | 63.7 | 2140 | 145 | 250 | 65 | Yes | Yes | Normal day |');
+    expect(md).toContain(
+      '| Date | Weight (kg) | Calories | Food log | Protein | Carbs | Fat | BM | Training | Notes |'
+    );
+    expect(md).toContain('|---|---:|---:|---|---:|---:|---:|---|---|---|');
+    expect(md).toContain('| 2026-08-03 | 63.7 | 2140 |  | 145 | 250 | 65 | Yes | Yes | Normal day |');
+  });
+});
+
+describe('days with an incomplete food log', () => {
+  const partial = [
+    entry('2026-08-03', { weightKg: 63.7, calories: 2100 }),
+    entry('2026-08-04', { weightKg: 63.8, calories: 400, caloriesIncomplete: true }),
+    entry('2026-08-05', { weightKg: 63.9, calories: 2300 }),
+  ];
+
+  it('carries the flag as its own CSV column', () => {
+    const lines = buildCsv(partial).trim().split('\r\n');
+    const columns = lines[0].split(',');
+    const at = (line: string, name: string) => line.split(',')[columns.indexOf(name)];
+    expect(at(lines[2], 'calories_incomplete')).toBe('yes');
+    // The calories themselves are still exported — the day is excluded from
+    // averages, not erased.
+    expect(at(lines[2], 'calories')).toBe('400');
+    expect(at(lines[1], 'calories_incomplete')).toBe('');
+  });
+
+  it('keeps the partial day out of the Markdown average and says so', () => {
+    const md = buildMarkdown(partial);
+    expect(md).toContain('Average calories: 2,200 kcal/day'); // not (2100+400+2300)/3
+    expect(md).toContain('Calorie-recorded days: 2');
+    expect(md).toContain('Days with a partial food log (excluded from the calorie average): 1');
+    expect(md).toContain('| 2026-08-04 | 63.8 | 400 | partial |');
+  });
+
+  it('tells the ChatGPT prompt not to average those days back in', () => {
+    const profile: Profile = {
+      sex: 'male',
+      age: 30,
+      heightCm: 175,
+      goal: 'Lean bulk',
+      targetWeightChangeKgPerWeek: 0.25,
+      trainingDaysPerWeek: 4,
+      cardio: false,
+      maintenanceCalories: null,
+      calorieTarget: null,
+      notes: '',
+    };
+    expect(buildChatGptPrompt(partial, profile)).toContain('Leave them out of every calorie');
+    // Nothing to say when no day is flagged.
+    expect(buildChatGptPrompt(entries, profile)).not.toContain('marked "partial"');
   });
 });
 

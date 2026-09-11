@@ -63,6 +63,11 @@ export function HistoryPage() {
               onClick={() => navigate(`/food?date=${entry.date}`)}
             >
               <span className={styles.value}>{fmtKcal(entry.calories)}</span>
+              {/* Otherwise a deliberately excluded day is indistinguishable
+                  from a genuinely light one at a glance. */}
+              {entry.caloriesIncomplete === true && (
+                <span className={styles.notCounted}>partial · not counted</span>
+              )}
               {entry.meals.length > 0 && (
                 <span className={styles.mealCount}>
                   {entry.meals.length} meal{entry.meals.length === 1 ? '' : 's'}

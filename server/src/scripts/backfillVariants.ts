@@ -47,6 +47,16 @@ const PLAN: VariantPlan[] = [
     match: [{ variationStartsWith: 'chest supported', variant: 'Chest supported' }],
     fallback: 'Cable',
   },
+  {
+    // The barbell bench is the same push slot as the machine but nowhere near
+    // the same load scale, so it gets its own variant rather than a variation
+    // footnote. Every session logged so far was on the machine — the history
+    // predates the bench — so that is the fallback.
+    exercise: 'Chest press',
+    variants: ['Machine', 'Bench press'],
+    match: [{ variationStartsWith: 'bench', variant: 'Bench press' }],
+    fallback: 'Machine',
+  },
 ];
 
 /** The variant a past session was performed on, per the plan's rules. */

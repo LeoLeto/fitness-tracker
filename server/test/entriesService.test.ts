@@ -36,6 +36,7 @@ function entry(date: string, fields: Partial<DailyEntry>): DailyEntry {
     carbsG: null,
     fatG: null,
     fiberG: null,
+    caloriesIncomplete: null,
     bowelMovement: null,
     weighedTime: null,
     beforeFood: null,

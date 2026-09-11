@@ -55,6 +55,7 @@ export function sessionPoint(workout: Workout, ex: WorkoutExercise): ExerciseSes
     hadBadForm: ex.sets.some((s) => s.badForm),
     variation: ex.variation,
     variant: ex.variant ?? null,
+    sets: ex.sets,
   };
 }
 

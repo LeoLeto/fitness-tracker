@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { average, rangeStat, windowStat } from '../src/analytics/averages';
+import { average, countsToward, rangeStat, windowStat } from '../src/analytics/averages';
 import { DailyEntry } from '../src/types';
 
 function entry(date: string, fields: Partial<DailyEntry> = {}): DailyEntry {
@@ -11,6 +11,7 @@ function entry(date: string, fields: Partial<DailyEntry> = {}): DailyEntry {
     carbsG: null,
     fatG: null,
     fiberG: null,
+    caloriesIncomplete: null,
     bowelMovement: null,
     weighedTime: null,
     beforeFood: null,
@@ -56,6 +57,46 @@ describe('windowStat', () => {
     const stat = windowStat(entries, 'weightKg', '2026-08-07', 3);
     expect(stat.count).toBe(2);
     expect(stat.avg).toBeCloseTo((63.7 + 63.4) / 2, 10);
+  });
+});
+
+describe('days with an incomplete food log', () => {
+  const entries = [
+    entry('2026-08-01', { weightKg: 63.4, calories: 2000, proteinG: 150 }),
+    // Ate normally, only logged breakfast before giving up on the day.
+    entry('2026-08-02', {
+      weightKg: 63.6,
+      calories: 400,
+      proteinG: 30,
+      caloriesIncomplete: true,
+    }),
+    entry('2026-08-03', { weightKg: 63.8, calories: 2200, proteinG: 160 }),
+  ];
+
+  it('leaves the partial day out of the calorie average instead of averaging it low', () => {
+    const stat = rangeStat(entries, 'calories', '2026-08-01', '2026-08-03');
+    expect(stat.count).toBe(2);
+    expect(stat.avg).toBeCloseTo(2100, 10); // NOT (2000 + 400 + 2200) / 3 = 1533
+  });
+
+  it('leaves it out of macro averages too — the macros are as partial as the calories', () => {
+    const stat = rangeStat(entries, 'proteinG', '2026-08-01', '2026-08-03');
+    expect(stat.count).toBe(2);
+    expect(stat.avg).toBeCloseTo(155, 10);
+  });
+
+  it('still counts the weigh-in — the scale that morning was not partial', () => {
+    const stat = rangeStat(entries, 'weightKg', '2026-08-01', '2026-08-03');
+    expect(stat.count).toBe(3);
+    expect(stat.avg).toBeCloseTo(63.6, 10);
+  });
+
+  it('reports per-field whether a day may be averaged', () => {
+    const partial = entries[1];
+    expect(countsToward(partial, 'calories')).toBe(false);
+    expect(countsToward(partial, 'weightKg')).toBe(true);
+    // A day nobody flagged is unaffected.
+    expect(countsToward(entries[0], 'calories')).toBe(true);
   });
 });
 
