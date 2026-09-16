@@ -1,0 +1,145 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  h2 {
+    font-size: 16px;
+  }
+}
+
+.statusOn {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ok);
+}
+
+.statusPaused {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.statusMeta {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.error {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--bad);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  span {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+// Deliberately undersized next to the primary action: undoing a pause you
+// started by mistake is rare, and shouldn't compete with resuming.
+.linkButton {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.history {
+  font-size: 13px;
+
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+}
+
+.historyList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+  }
+}
+
+.historyDates {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.historyMeta {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+
+.delete {
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--bad);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}

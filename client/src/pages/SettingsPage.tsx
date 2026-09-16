@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { TrackingPauseCard } from '../components/TrackingPauseCard';
 import { NumericInput } from '../components/fields';
 import { useToast } from '../components/Toast';
 import { useApi } from '../hooks/useApi';
@@ -94,6 +95,10 @@ export function SettingsPage() {
       <div className={pageStyles.pageHeader}>
         <h1>Settings</h1>
       </div>
+
+      {/* Above Appearance: it's the only thing on this page you come looking
+          for with a suitcase packed. */}
+      <TrackingPauseCard />
 
       <section className={`card ${styles.section}`}>
         <h2>Appearance</h2>

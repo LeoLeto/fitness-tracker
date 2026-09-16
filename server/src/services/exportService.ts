@@ -20,6 +20,7 @@ const CSV_HEADER = [
   'fat_g',
   'fiber_g',
   'calories_incomplete',
+  'tracking_paused',
   'bowel_movement',
   'weighed_time',
   'before_food',
@@ -51,6 +52,7 @@ export function buildCsv(entries: DailyEntry[]): string {
     num(e.fatG),
     num(e.fiberG),
     yesNo(e.caloriesIncomplete),
+    e.paused === true ? 'yes' : '',
     yesNo(e.bowelMovement),
     e.weighedTime ?? '',
     yesNo(e.beforeFood),
@@ -106,6 +108,8 @@ interface ExportSummary {
   calorieDays: number;
   /** Days left out of the calorie average because their food log was partial. */
   incompleteFoodDays: number;
+  /** Days left out because tracking was paused for the period they fall in. */
+  pausedDays: number;
   avgWeight: number | null;
   weightMeasurements: number;
   trendKgPerWeek: number | null;
@@ -118,7 +122,13 @@ export function buildExportSummary(entries: DailyEntry[]): ExportSummary {
   const calories = sorted
     .filter((e) => countsToward(e, 'calories'))
     .map((e) => e.calories as number);
-  const incompleteFoodDays = sorted.filter((e) => e.caloriesIncomplete === true).length;
+  // Paused days that were also ticked "incomplete" are counted once, under the
+  // pause: that is the label the table gives them, and a summary promising 7
+  // "partial" rows that the reader cannot find is worse than no summary.
+  const incompleteFoodDays = sorted.filter(
+    (e) => e.caloriesIncomplete === true && e.paused !== true
+  ).length;
+  const pausedDays = sorted.filter((e) => e.paused === true).length;
   const trend = weightTrend(
     weights.map((e) => ({ date: e.date, weightKg: e.weightKg as number }))
   );
@@ -128,6 +138,7 @@ export function buildExportSummary(entries: DailyEntry[]): ExportSummary {
     avgCalories: average(calories),
     calorieDays: calories.length,
     incompleteFoodDays,
+    pausedDays,
     avgWeight: average(weights.map((e) => e.weightKg as number)),
     weightMeasurements: weights.length,
     trendKgPerWeek: trend ? trend.kgPerWeek : null,
@@ -170,6 +181,17 @@ export function buildMarkdown(entries: DailyEntry[]): string {
   );
   lines.push(`Weight measurements: ${s.weightMeasurements}`);
   lines.push(`Calorie-recorded days: ${s.calorieDays}`);
+  if (s.pausedDays > 0) {
+    // The single most misreadable thing in the table: a fortnight of blank
+    // calorie cells that an LLM will happily average in as zeros or read as
+    // extreme restriction. Say what it was before the table arrives.
+    lines.push(
+      `Days with tracking paused (excluded from the calorie average): ${s.pausedDays}` +
+        ' — marked "paused" in the Food log column. Calories were deliberately not tracked on' +
+        ' those days; they are not low-intake days and the weight change across them cannot be' +
+        ' attributed to recorded intake.'
+    );
+  }
   if (s.incompleteFoodDays > 0) {
     // Said plainly because this export is read by an LLM as often as by a
     // person: these rows carry calories that understate the day and must not
@@ -189,7 +211,7 @@ export function buildMarkdown(entries: DailyEntry[]): string {
       e.date,
       e.weightKg != null ? e.weightKg.toFixed(1) : '',
       e.calories != null ? String(e.calories) : '',
-      e.caloriesIncomplete === true ? 'partial' : '',
+      e.paused === true ? 'paused' : e.caloriesIncomplete === true ? 'partial' : '',
       e.proteinG != null ? String(e.proteinG) : '',
       e.carbsG != null ? String(e.carbsG) : '',
       e.fatG != null ? String(e.fatG) : '',
@@ -347,7 +369,10 @@ export function buildChatGptPrompt(
   withWorkouts = false
 ): string {
   const target = signed(profile.targetWeightChangeKgPerWeek, 1);
-  const partialDays = entries.filter((e) => e.caloriesIncomplete === true).length;
+  const partialDays = entries.filter(
+    (e) => e.caloriesIncomplete === true && e.paused !== true
+  ).length;
+  const pausedDays = entries.filter((e) => e.paused === true).length;
   const prompt = `I'm tracking my calories and body weight to determine my real-world maintenance calories and target a weight change of approximately ${target} kg/week.
 
 My profile:
@@ -377,6 +402,12 @@ ${
 `
     : ''
 }${
+    pausedDays > 0
+      ? `
+Note: ${pausedDays} day${pausedDays === 1 ? ' is' : 's are'} marked "paused" in the Food log column — calorie tracking was deliberately switched off for ${pausedDays === 1 ? 'that day' : 'those days'} (a holiday or similar), so no intake was recorded at all. Exclude ${pausedDays === 1 ? 'it' : 'them'} from every calorie and macro average, and do not use any weight change that spans ${pausedDays === 1 ? 'it' : 'them'} to estimate maintenance calories — the intake behind that change was never measured.
+`
+      : ''
+  }${
     partialDays > 0
       ? `
 Note: ${partialDays} day${partialDays === 1 ? ' is' : 's are'} marked "partial" in the Food log column — the food log for ${partialDays === 1 ? 'that day' : 'those days'} is known to be incomplete, so the calorie figure understates what was actually eaten. Leave them out of every calorie and macro average rather than treating them as low-intake days.

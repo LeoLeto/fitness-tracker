@@ -7,10 +7,12 @@ import {
   FoodWithPortions,
   LastPerformance,
   MealTemplate,
+  PauseList,
   PersonalBest,
   Profile,
   ResolvedMealTemplate,
   TimelinePayload,
+  TrackingPause,
   WeeklySummary,
   Workout,
 } from '../types';
@@ -71,6 +73,22 @@ export const api = {
       throw err;
     }
   },
+  /**
+   * Tracking pauses — holidays and other stretches where the food log was
+   * never going to be kept. One at a time: `startPause` refuses (409) while
+   * another is still running.
+   */
+  listPauses: () => request<PauseList>('/pauses'),
+  startPause: (note?: string) =>
+    request<TrackingPause>('/pauses', {
+      method: 'POST',
+      body: JSON.stringify({ note: note ?? '' }),
+    }),
+  resumeTracking: () =>
+    request<TrackingPause>('/pauses/resume', { method: 'POST', body: JSON.stringify({}) }),
+  /** Removes a pause outright — the days it covered rejoin the averages. */
+  deletePause: (id: string) => request<void>(`/pauses/${id}`, { method: 'DELETE' }),
+
   saveEntry: (entry: DailyEntry) =>
     request<DailyEntry>('/entries', { method: 'POST', body: JSON.stringify(entry) }),
   /**

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { markPaused } from '../analytics/pauses';
 import { DailyEntryModel, serializeEntry } from '../models/DailyEntry';
 import { getOrCreateProfile, serializeProfile } from '../models/Profile';
 import { serializeWorkout, WorkoutModel } from '../models/Workout';
@@ -11,14 +12,21 @@ import {
   buildWorkoutsMarkdown,
 } from '../services/exportService';
 import { asyncHandler } from '../utils/asyncHandler';
+import { loadPauses } from './pauses';
 import { parseRangeQuery, rangeFilter } from '../utils/rangeQuery';
 
 export const exportRouter = Router();
 
 async function loadEntries(req: Parameters<typeof parseRangeQuery>[0]) {
   const range = parseRangeQuery(req);
-  const docs = await DailyEntryModel.find(rangeFilter(range)).sort({ date: 1 }).lean();
-  return docs.map((d) => serializeEntry(d as Record<string, unknown>));
+  const [docs, pauses] = await Promise.all([
+    DailyEntryModel.find(rangeFilter(range)).sort({ date: 1 }).lean(),
+    loadPauses(),
+  ]);
+  const entries = docs.map((d) => serializeEntry(d as Record<string, unknown>));
+  // Exports carry the pause marking too: a fortnight of blank calorie cells
+  // needs to say why, or it reads as a fortnight of not eating.
+  return markPaused(entries, pauses);
 }
 
 async function loadWorkouts(req: Parameters<typeof parseRangeQuery>[0]) {

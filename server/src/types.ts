@@ -55,6 +55,35 @@ export interface EntryData {
 
 export interface DailyEntry extends EntryData {
   date: string; // ISO date "YYYY-MM-DD" — exactly one entry per date
+  /**
+   * Derived at read time from the tracking-pause log; never stored on the day.
+   * The date fell inside a period when calorie tracking was deliberately off,
+   * so food averages skip it exactly as they skip `caloriesIncomplete`. The
+   * difference is where the fact lives: this one belongs to the period, so
+   * nothing the day contains can change it and clearing it means ending the
+   * pause. Weigh-ins and training on a paused day count as usual.
+   */
+  paused?: boolean;
+}
+
+/**
+ * A stretch with calorie tracking switched off — a holiday, a trip, any period
+ * where the food log was never going to be kept. Started and ended by hand
+ * ("pause now" / "resume now"); `endDate` stays null while the pause runs,
+ * which is what makes it the active one.
+ *
+ * Stored as a period rather than as a flag written onto each day: starting a
+ * pause is then one tap no matter how long it turns out to last, days that
+ * were never opened still get excluded, and `caloriesIncomplete` keeps meaning
+ * only what it says — a day you meant to log and couldn't.
+ */
+export interface TrackingPause {
+  id: string;
+  /** First paused day, inclusive. */
+  startDate: string;
+  /** Last paused day, inclusive; null while the pause is still running. */
+  endDate: string | null;
+  note: string;
 }
 
 export interface Profile {
@@ -212,6 +241,8 @@ export interface MaintenanceEstimate {
   periodDays: number;
   calorieDays: number;
   weightMeasurements: number;
+  /** Days in the period that fell inside a tracking pause. */
+  pausedDays: number;
   avgCalories: number | null;
   trendKgPerWeek: number | null;
   /** Rounded to the nearest 10 kcal — this is an estimate, not a measurement. */

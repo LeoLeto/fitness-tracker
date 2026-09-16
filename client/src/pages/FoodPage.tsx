@@ -140,6 +140,7 @@ export function FoodPage() {
   const profile = useApi(() => api.getProfile(), []);
   const foods = useApi(() => api.listFoods(), []);
   const templates = useApi(() => api.listMealTemplates(), []);
+  const pauses = useApi(() => api.listPauses(), []);
 
   // Labels already used, newest first — powers the quick-pick datalist.
   const knownLabels = useMemo(() => {
@@ -198,6 +199,29 @@ export function FoodPage() {
 
   const totals = editorTotals(rows);
   const target = profile.data?.calorieTarget ?? null;
+
+  /**
+   * The pause covering the day on screen, if any. Read from the pause list
+   * rather than from the entry's derived `paused`: most days of a holiday have
+   * no entry at all, and the banner has to show on those days above all. Found
+   * by search rather than taken from `active` because an old day can sit
+   * inside a pause that was resumed months ago and still needs explaining.
+   */
+  const coveringPause = useMemo(() => {
+    const all = pauses.data?.pauses ?? [];
+    return all.find((p) => date >= p.startDate && (p.endDate === null || date <= p.endDate)) ?? null;
+  }, [pauses.data, date]);
+
+  const paused = coveringPause !== null;
+
+  // Only offer "Resume" for the pause that is actually still running.
+  const activePause = coveringPause?.endDate === null ? coveringPause : null;
+
+  const pauseLabel = coveringPause
+    ? coveringPause.endDate === null
+      ? `Paused since ${formatMedium(coveringPause.startDate)}`
+      : `Paused ${formatMedium(coveringPause.startDate)} – ${formatMedium(coveringPause.endDate)}`
+    : 'Tracking was paused for this day';
 
   // The newest added row: the one that gets scrolled to, and the one still
   // worth showing when the list as a whole is folded.
@@ -363,6 +387,28 @@ export function FoodPage() {
     }
   };
 
+  /**
+   * Ends the running pause, today. Reloads the day rather than just flipping
+   * the flag: resuming changes which days count, and the totals on screen have
+   * to agree with that immediately.
+   */
+  const resumeTracking = async () => {
+    setError(null);
+    setSaving(true);
+    try {
+      await api.resumeTracking();
+      pauses.reload();
+      allEntries.reload();
+      const entry = await api.getEntry(date);
+      loadEntry(entry);
+      show('Tracking resumed');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not resume tracking');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveMeals = async () => {
     const serialized = mealsFromRows(rows);
     if ('error' in serialized) {
@@ -519,25 +565,52 @@ export function FoodPage() {
         )}
       </section>
 
-      <div className={incomplete ? styles.incompleteCard : undefined}>
-        <button
-          type="button"
-          className={incomplete ? styles.incompleteOn : styles.incompleteToggle}
-          aria-pressed={incomplete}
-          disabled={saving}
-          onClick={() => void markIncomplete(!incomplete)}
-        >
-          <span aria-hidden="true">{incomplete ? '☑' : '☐'}</span>{' '}
-          {incomplete ? "Food log incomplete — day not counted" : "Couldn't log everything today"}
-        </button>
-        {incomplete && (
-          <p className={styles.incompleteNote}>
-            Whatever is logged stays logged, but this day is left out of the calorie and macro
-            averages and off the charts — so a day you couldn't finish logging doesn't read as a
-            light one.
+      {/* A paused day is already excluded, so the per-day checkbox would be a
+          second switch for the same thing — and ticking it every morning is
+          exactly what the pause exists to avoid. It gives up its place to the
+          banner, which says who is doing the excluding and how to stop. */}
+      {paused ? (
+        <div className={styles.pausedCard}>
+          <div className={styles.pausedTitle}>
+            <span aria-hidden="true">⏸</span> Tracking paused
+          </div>
+          <p className={styles.pausedNote}>
+            {pauseLabel}. Calories and macros aren't counted for these days and they draw no bar on
+            the chart. Log something if you feel like it — it's kept, just not averaged. Weigh-ins
+            and workouts count as usual.
           </p>
-        )}
-      </div>
+          {activePause && (
+            <button
+              type="button"
+              className={styles.resumeButton}
+              disabled={saving}
+              onClick={() => void resumeTracking()}
+            >
+              Resume tracking
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className={incomplete ? styles.incompleteCard : undefined}>
+          <button
+            type="button"
+            className={incomplete ? styles.incompleteOn : styles.incompleteToggle}
+            aria-pressed={incomplete}
+            disabled={saving}
+            onClick={() => void markIncomplete(!incomplete)}
+          >
+            <span aria-hidden="true">{incomplete ? '☑' : '☐'}</span>{' '}
+            {incomplete ? "Food log incomplete — day not counted" : "Couldn't log everything today"}
+          </button>
+          {incomplete && (
+            <p className={styles.incompleteNote}>
+              Whatever is logged stays logged, but this day is left out of the calorie and macro
+              averages and off the charts — so a day you couldn't finish logging doesn't read as a
+              light one.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className={styles.quickHeader}>
         <button

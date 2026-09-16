@@ -22,11 +22,25 @@ export interface DataAmount {
   spanDays: number; // days covered by the analysed period's measurements
   weightMeasurements: number;
   calorieDays: number;
+  /** Days in the period that fell inside a tracking pause. */
+  pausedDays?: number;
 }
 
 /** Returns human-readable unmet requirements; empty array means sufficient. */
 export function insufficiencyReasons(data: DataAmount): string[] {
   const reasons: string[] = [];
+  // A pause is disqualifying however short it was, because the estimate is an
+  // energy balance over the whole period: the weight moved across those days
+  // too, and with no intake recorded for them the change gets charged to the
+  // days that were logged. The result is not a noisy estimate, it is a wrong
+  // one — so the app says what it can't do instead of quoting a number.
+  if (data.pausedDays !== undefined && data.pausedDays > 0) {
+    reasons.push(
+      `Tracking was paused for ${data.pausedDays} day${data.pausedDays === 1 ? '' : 's'} in ` +
+        'this period, so the weight change spans days with no intake recorded. ' +
+        'Narrow the range to days after the pause for an estimate.'
+    );
+  }
   if (data.spanDays < SUFFICIENCY.minSpanDays) {
     reasons.push(
       `Need at least ${SUFFICIENCY.minSpanDays} days of data (currently ${data.spanDays}).`
@@ -68,12 +82,17 @@ export function buildRecommendation(
 ): Recommendation {
   const reasons = insufficiencyReasons(data);
   if (reasons.length > 0 || trendKgPerWeek === null) {
+    // A paused period isn't thin data, it's data that would mislead — telling
+    // someone to eat 150 kcal less because of a holiday they never logged is
+    // worse than telling them nothing, so it gets its own opening line.
+    const paused = data.pausedDays !== undefined && data.pausedDays > 0;
     return {
       sufficient: false,
       status: null,
-      message:
-        'Not enough data yet for a reliable recommendation. Aim for at least 2–3 weeks of reasonably consistent data. ' +
-        reasons.join(' '),
+      message: paused
+        ? `No recommendation while a pause sits in this period. ${reasons.join(' ')}`
+        : 'Not enough data yet for a reliable recommendation. Aim for at least 2–3 weeks of reasonably consistent data. ' +
+          reasons.join(' '),
     };
   }
   const status = classifyTrend(trendKgPerWeek, targetKgPerWeek);

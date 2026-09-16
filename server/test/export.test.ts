@@ -53,8 +53,8 @@ describe('CSV export', () => {
     const lines = csv.trim().split('\r\n');
     const header =
       'date,weight_kg,calories,protein_g,carbs_g,fat_g,fiber_g,calories_incomplete,' +
-      'bowel_movement,weighed_time,before_food,after_bowel_movement,trained,training_type,' +
-      'training_duration_min,notes,meal_count';
+      'tracking_paused,bowel_movement,weighed_time,before_food,after_bowel_movement,trained,' +
+      'training_type,training_duration_min,notes,meal_count';
     expect(lines[0]).toBe(header);
 
     // Field-indexed rather than comma-counted, so a new column can't quietly

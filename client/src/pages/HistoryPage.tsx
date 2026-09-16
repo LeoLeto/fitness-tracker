@@ -64,9 +64,15 @@ export function HistoryPage() {
             >
               <span className={styles.value}>{fmtKcal(entry.calories)}</span>
               {/* Otherwise a deliberately excluded day is indistinguishable
-                  from a genuinely light one at a glance. */}
-              {entry.caloriesIncomplete === true && (
-                <span className={styles.notCounted}>partial · not counted</span>
+                  from a genuinely light one at a glance. A pause outranks the
+                  per-day flag: it explains the whole stretch of blank days
+                  around this one, not just this one. */}
+              {entry.paused === true ? (
+                <span className={styles.notCounted}>paused · not counted</span>
+              ) : (
+                entry.caloriesIncomplete === true && (
+                  <span className={styles.notCounted}>partial · not counted</span>
+                )
               )}
               {entry.meals.length > 0 && (
                 <span className={styles.mealCount}>

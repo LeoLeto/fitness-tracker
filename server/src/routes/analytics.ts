@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { markPaused } from '../analytics/pauses';
 import { buildAnalyticsSummary } from '../analytics/summary';
 import { buildWeeklySummaries } from '../analytics/weekly';
 import { DailyEntryModel, serializeEntry } from '../models/DailyEntry';
@@ -7,6 +8,7 @@ import { serializeWorkout, WorkoutModel } from '../models/Workout';
 import { asyncHandler } from '../utils/asyncHandler';
 import { addDays, todayStr } from '../utils/dates';
 import { parseRangeQuery } from '../utils/rangeQuery';
+import { loadPauses } from './pauses';
 import { exerciseSeries, personalBests } from '../workouts/strength';
 import { buildTimeline } from '../workouts/timeline';
 
@@ -35,10 +37,10 @@ analyticsRouter.get(
 
     // Fetch everything up to `to`: rolling windows and "latest weight" may
     // legitimately look slightly before `from`.
-    const entries = await loadEntries(to);
+    const [entries, pauses] = await Promise.all([loadEntries(to), loadPauses()]);
     const profile = serializeProfile((await getOrCreateProfile()).toObject());
 
-    res.json(buildAnalyticsSummary(entries, profile, from, to));
+    res.json(buildAnalyticsSummary(entries, profile, from, to, pauses));
   })
 );
 
@@ -46,8 +48,12 @@ analyticsRouter.get(
 analyticsRouter.get(
   '/weekly',
   asyncHandler(async (_req, res) => {
-    const [entries, workouts] = await Promise.all([loadEntries(), loadWorkouts()]);
-    res.json(buildWeeklySummaries(entries, workouts));
+    const [entries, workouts, pauses] = await Promise.all([
+      loadEntries(),
+      loadWorkouts(),
+      loadPauses(),
+    ]);
+    res.json(buildWeeklySummaries(markPaused(entries, pauses), workouts));
   })
 );
 
@@ -88,7 +94,12 @@ analyticsRouter.get(
   '/timeline',
   asyncHandler(async (req, res) => {
     const range = parseRangeQuery(req);
-    const [entries, workouts] = await Promise.all([loadEntries(), loadWorkouts()]);
+    const [rawEntries, workouts, pauses] = await Promise.all([
+      loadEntries(),
+      loadWorkouts(),
+      loadPauses(),
+    ]);
+    const entries = markPaused(rawEntries, pauses);
 
     const firstData =
       [entries[0]?.date, workouts[0]?.date].filter(Boolean).sort()[0] ?? todayStr();

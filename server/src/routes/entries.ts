@@ -1,9 +1,11 @@
 import { Router } from 'express';
+import { markPaused } from '../analytics/pauses';
 import { DailyEntryModel, serializeEntry } from '../models/DailyEntry';
 import { upsertEntry } from '../services/entriesService';
 import { applyMealTotals } from '../services/mealTotals';
 import { asyncHandler } from '../utils/asyncHandler';
 import { isValidDateStr } from '../utils/dates';
+import { loadPauses } from './pauses';
 import { parseRangeQuery, rangeFilter } from '../utils/rangeQuery';
 import { validateEntry, validateEntryPatch } from '../utils/validation';
 
@@ -13,8 +15,14 @@ entriesRouter.get(
   '/',
   asyncHandler(async (req, res) => {
     const range = parseRangeQuery(req);
-    const docs = await DailyEntryModel.find(rangeFilter(range)).sort({ date: 1 }).lean();
-    res.json(docs.map((d) => serializeEntry(d as Record<string, unknown>)));
+    const [docs, pauses] = await Promise.all([
+      DailyEntryModel.find(rangeFilter(range)).sort({ date: 1 }).lean(),
+      loadPauses(),
+    ]);
+    // `paused` is derived, not stored — stamped here so every consumer of the
+    // entry list (charts, history, export) sees the same exclusion.
+    const entries = docs.map((d) => serializeEntry(d as Record<string, unknown>));
+    res.json(markPaused(entries, pauses));
   })
 );
 
@@ -26,12 +34,16 @@ entriesRouter.get(
       res.status(400).json({ error: 'Invalid date' });
       return;
     }
-    const doc = await DailyEntryModel.findOne({ date }).lean();
+    const [doc, pauses] = await Promise.all([
+      DailyEntryModel.findOne({ date }).lean(),
+      loadPauses(),
+    ]);
     if (!doc) {
       res.status(404).json({ error: 'No entry for this date' });
       return;
     }
-    res.json(serializeEntry(doc as Record<string, unknown>));
+    const [entry] = markPaused([serializeEntry(doc as Record<string, unknown>)], pauses);
+    res.json(entry);
   })
 );
 

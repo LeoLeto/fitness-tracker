@@ -124,6 +124,29 @@ export interface DailyEntry {
   trainingDurationMin: number | null;
   notes: string | null;
   meals: Meal[];
+  /**
+   * Derived server-side from the tracking-pause log, never stored on the day:
+   * this date fell inside a period with calorie tracking switched off. Food
+   * averages and the calorie chart skip it just as they skip
+   * `caloriesIncomplete`; the weigh-in and the workout still count. Clearing
+   * it means ending the pause, not editing the day.
+   */
+  paused?: boolean;
+}
+
+/** A period with calorie tracking deliberately off — `endDate` null while running. */
+export interface TrackingPause {
+  id: string;
+  startDate: string;
+  endDate: string | null;
+  note: string;
+}
+
+export interface PauseList {
+  /** The pause currently running, or null when tracking is on. */
+  active: TrackingPause | null;
+  /** Every pause ever recorded, newest first. */
+  pauses: TrackingPause[];
 }
 
 export interface Profile {
@@ -163,6 +186,8 @@ export interface MaintenanceEstimate {
   periodDays: number;
   calorieDays: number;
   weightMeasurements: number;
+  /** Days in the period that fell inside a tracking pause. */
+  pausedDays: number;
   avgCalories: number | null;
   trendKgPerWeek: number | null;
   estimatedMaintenanceKcal: number | null;

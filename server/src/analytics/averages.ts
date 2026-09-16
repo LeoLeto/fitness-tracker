@@ -19,17 +19,21 @@ const FOOD_FIELDS: NumericField[] = ['calories', 'proteinG', 'carbsG', 'fatG', '
 /**
  * Whether an entry may contribute its `field` to an average.
  *
- * Two ways a day can be silent. It never recorded the value — missing stays
+ * Three ways a day can be silent. It never recorded the value — missing stays
  * missing, never 0. Or its food log was marked incomplete: the numbers it does
  * have are real but only part of the day, so they are kept and shown while
  * every calorie and macro average skips them, since a half-logged day averaged
- * in reads as a light day and drags the maintenance estimate with it. That
- * exclusion is food-only — the weigh-in taken that morning was not partial.
+ * in reads as a light day and drags the maintenance estimate with it. Or the
+ * day fell inside a tracking pause, where the same is true of the whole period
+ * and nobody had to tick anything each morning to say so.
+ *
+ * All of that is food-only — the weigh-in taken that morning was not partial,
+ * and a holiday does not stop the scale from working.
  */
 export function countsToward(entry: DailyEntry, field: NumericField): boolean {
   if (entry[field] == null) return false;
-  if (entry.caloriesIncomplete === true && FOOD_FIELDS.includes(field)) return false;
-  return true;
+  if (!FOOD_FIELDS.includes(field)) return true;
+  return entry.caloriesIncomplete !== true && entry.paused !== true;
 }
 
 /** Averageable values of `field` for entries within [from, to] (inclusive). */

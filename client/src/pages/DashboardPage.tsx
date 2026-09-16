@@ -17,6 +17,7 @@ import {
   fmtKg,
   fmtTrend,
 } from '../utils/format';
+import { formatMedium } from '../utils/dates';
 import { buildChartData } from '../utils/movingAverage';
 import styles from '../styles/page.module.scss';
 
@@ -39,6 +40,8 @@ export function DashboardPage() {
   const entries = useApi(() => api.listEntries(), []);
   const profile = useApi(() => api.getProfile(), []);
   const weekly = useApi(() => api.getWeekly(), []);
+  const pauses = useApi(() => api.listPauses(), []);
+  const activePause = pauses.data?.active ?? null;
 
   const thisWeek = weekly.data?.[0];
   const weekSessions = thisWeek
@@ -65,6 +68,15 @@ export function DashboardPage() {
         <h1>Dashboard</h1>
         <RangePicker value={range} onChange={setRange} />
       </div>
+
+      {/* Without this the calorie cards below just read "no data", which looks
+          like the app lost them rather than like a decision you made. */}
+      {activePause && (
+        <div className={styles.notice}>
+          ⏸ Calorie tracking paused since {formatMedium(activePause.startDate)} — those days are
+          left out of the calorie averages below. Resume from Settings.
+        </div>
+      )}
 
       {analytics.error && <div className={styles.error}>{analytics.error}</div>}
       {!a && !analytics.error && <div className={styles.loading}>Loading…</div>}

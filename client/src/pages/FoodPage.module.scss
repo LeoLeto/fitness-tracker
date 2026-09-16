@@ -236,6 +236,54 @@
   color: var(--text-muted);
 }
 
+// Tracking paused for a whole period. Deliberately quieter than the
+// "incomplete" warning: nothing went wrong here, it was a choice.
+.pausedCard {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pausedTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pausedNote {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.resumeButton {
+  align-self: flex-start;
+  margin-top: 2px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: var(--primary-contrast);
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
 .quickHeader {
   display: flex;
   align-items: center;

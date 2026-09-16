@@ -3,8 +3,10 @@ import {
   DailyEntry,
   MaintenanceEstimate,
   Profile,
+  TrackingPause,
 } from '../types';
 import { rangeStat, windowStat } from './averages';
+import { markPaused, pausedDaysInRange } from './pauses';
 import { estimateMaintenance, suggestedIntake } from './maintenance';
 import {
   buildRecommendation,
@@ -31,14 +33,21 @@ function weightPointsIn(entries: DailyEntry[], from: string, to: string): Weight
  *   selected [from, to] period using actual measurement dates.
  * - `entries` should contain all entries up to `to` (they may start before
  *   `from`; anything after `to` is ignored by the range filters).
+ * - `pauses` mark periods where calorie tracking was off. Their days are
+ *   excluded from every food average, and any overlap with the period blocks
+ *   the maintenance estimate outright (see `insufficiencyReasons`).
  */
 export function buildAnalyticsSummary(
   entries: DailyEntry[],
   profile: Profile,
   from: string,
-  to: string
+  to: string,
+  pauses: TrackingPause[] = []
 ): AnalyticsSummary {
-  const sorted = [...entries].sort((a, b) => (a.date < b.date ? -1 : 1));
+  // Stamped here rather than expected of the caller, so an analytics summary
+  // built anywhere honours the pauses it was handed.
+  const sorted = markPaused([...entries], pauses, to).sort((a, b) => (a.date < b.date ? -1 : 1));
+  const pausedDays = pausedDaysInRange(pauses, from, to, to);
 
   const weighed = sorted.filter((e) => e.weightKg != null && e.date <= to);
   const latest = weighed.length > 0 ? weighed[weighed.length - 1] : null;
@@ -55,6 +64,7 @@ export function buildAnalyticsSummary(
     spanDays,
     weightMeasurements: points.length,
     calorieDays: caloriesRange.count,
+    pausedDays,
   };
 
   const target = profile.targetWeightChangeKgPerWeek;
@@ -105,6 +115,7 @@ function buildMaintenanceEstimate(
     periodDays: dayDiff(from, to) + 1,
     calorieDays: data.calorieDays,
     weightMeasurements: data.weightMeasurements,
+    pausedDays: data.pausedDays ?? 0,
     avgCalories,
     trendKgPerWeek,
   };
