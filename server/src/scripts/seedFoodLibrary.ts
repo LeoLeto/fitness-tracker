@@ -176,6 +176,22 @@ const WEIGHED: SeedFood[] = [
     portions: [],
     notes: '1 tsp ≈ 4 g',
   },
+  {
+    // The pack's own figures, for the whole 40 g packet — which is also the
+    // one-tap portion, since a packet is how they're eaten. Loose biscuits
+    // still weigh out on the Weigh tab like anything else here.
+    name: 'Maizena biscuits',
+    unit: 'g',
+    category: 'pantry',
+    basisQty: 40,
+    calories: 173,
+    proteinG: 3,
+    carbsG: 30,
+    fatG: 4.6,
+    fiberG: 0.7,
+    portions: [40],
+    notes: '1 packet = 40 g',
+  },
 
   // ── Dressings & oils ──────────────────────────────────────────────────────
   {
