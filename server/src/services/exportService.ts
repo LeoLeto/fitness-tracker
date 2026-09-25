@@ -110,6 +110,8 @@ interface ExportSummary {
   incompleteFoodDays: number;
   /** Days left out because tracking was paused for the period they fall in. */
   pausedDays: number;
+  /** Days left out because they total 0 kcal — opened, never logged. */
+  zeroCalorieDays: number;
   avgWeight: number | null;
   weightMeasurements: number;
   trendKgPerWeek: number | null;
@@ -129,6 +131,10 @@ export function buildExportSummary(entries: DailyEntry[]): ExportSummary {
     (e) => e.caloriesIncomplete === true && e.paused !== true
   ).length;
   const pausedDays = sorted.filter((e) => e.paused === true).length;
+  // Counted once and under the label the table actually shows, as above.
+  const zeroCalorieDays = sorted.filter(
+    (e) => e.calories === 0 && e.paused !== true && e.caloriesIncomplete !== true
+  ).length;
   const trend = weightTrend(
     weights.map((e) => ({ date: e.date, weightKg: e.weightKg as number }))
   );
@@ -139,6 +145,7 @@ export function buildExportSummary(entries: DailyEntry[]): ExportSummary {
     calorieDays: calories.length,
     incompleteFoodDays,
     pausedDays,
+    zeroCalorieDays,
     avgWeight: average(weights.map((e) => e.weightKg as number)),
     weightMeasurements: weights.length,
     trendKgPerWeek: trend ? trend.kgPerWeek : null,
@@ -148,6 +155,14 @@ export function buildExportSummary(entries: DailyEntry[]): ExportSummary {
 
 const fmtInt = (v: number) => Math.round(v).toLocaleString('en-US');
 const signed = (v: number, decimals: number) => `${v >= 0 ? '+' : ''}${v.toFixed(decimals)}`;
+
+/** Why a row is out of the calorie average, for the table's Food log column. */
+function foodLogLabel(e: DailyEntry): string {
+  if (e.paused === true) return 'paused';
+  if (e.caloriesIncomplete === true) return 'partial';
+  if (e.calories === 0) return 'not logged';
+  return '';
+}
 
 /** Escapes characters that would break a Markdown table cell. */
 function mdCell(s: string): string {
@@ -201,6 +216,15 @@ export function buildMarkdown(entries: DailyEntry[]): string {
         ' — marked "partial" in the Food log column; their calorie figure is incomplete.'
     );
   }
+  if (s.zeroCalorieDays > 0) {
+    // A literal 0 in the table is the easiest number in the export to average
+    // in by mistake, and the only one that reads as a real day of fasting.
+    lines.push(
+      `Days with nothing logged (excluded from the calorie average): ${s.zeroCalorieDays}` +
+        ' — marked "not logged" in the Food log column. Their 0 kcal is the absence of a food' +
+        ' log, not a day of eating nothing.'
+    );
+  }
   lines.push(`Training days: ${s.trainingDays}`);
 
   const header =
@@ -211,7 +235,7 @@ export function buildMarkdown(entries: DailyEntry[]): string {
       e.date,
       e.weightKg != null ? e.weightKg.toFixed(1) : '',
       e.calories != null ? String(e.calories) : '',
-      e.paused === true ? 'paused' : e.caloriesIncomplete === true ? 'partial' : '',
+      foodLogLabel(e),
       e.proteinG != null ? String(e.proteinG) : '',
       e.carbsG != null ? String(e.carbsG) : '',
       e.fatG != null ? String(e.fatG) : '',
@@ -373,6 +397,9 @@ export function buildChatGptPrompt(
     (e) => e.caloriesIncomplete === true && e.paused !== true
   ).length;
   const pausedDays = entries.filter((e) => e.paused === true).length;
+  const zeroDays = entries.filter(
+    (e) => e.calories === 0 && e.paused !== true && e.caloriesIncomplete !== true
+  ).length;
   const prompt = `I'm tracking my calories and body weight to determine my real-world maintenance calories and target a weight change of approximately ${target} kg/week.
 
 My profile:
@@ -411,6 +438,12 @@ Note: ${pausedDays} day${pausedDays === 1 ? ' is' : 's are'} marked "paused" in 
     partialDays > 0
       ? `
 Note: ${partialDays} day${partialDays === 1 ? ' is' : 's are'} marked "partial" in the Food log column — the food log for ${partialDays === 1 ? 'that day' : 'those days'} is known to be incomplete, so the calorie figure understates what was actually eaten. Leave them out of every calorie and macro average rather than treating them as low-intake days.
+`
+      : ''
+  }${
+    zeroDays > 0
+      ? `
+Note: ${zeroDays} day${zeroDays === 1 ? ' shows' : 's show'} 0 kcal and ${zeroDays === 1 ? 'is' : 'are'} marked "not logged" in the Food log column — ${zeroDays === 1 ? 'that day was' : 'those days were'} opened for a weigh-in or a note and never had food logged. The 0 is an empty log, not a fast: exclude ${zeroDays === 1 ? 'it' : 'them'} from every calorie and macro average.
 `
       : ''
   }

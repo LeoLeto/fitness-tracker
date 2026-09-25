@@ -157,6 +157,39 @@ describe('days with an incomplete food log', () => {
   });
 });
 
+describe('days that total 0 kcal', () => {
+  const zeroDays = [
+    entry('2026-08-03', { weightKg: 63.7, calories: 2100 }),
+    entry('2026-08-04', { weightKg: 63.8, calories: 0 }),
+    entry('2026-08-05', { weightKg: 63.9, calories: 2300 }),
+  ];
+
+  it('keeps the 0 kcal day out of the Markdown average and labels the row', () => {
+    const md = buildMarkdown(zeroDays);
+    expect(md).toContain('Average calories: 2,200 kcal/day'); // not (2100+0+2300)/3
+    expect(md).toContain('Calorie-recorded days: 2');
+    expect(md).toContain('Days with nothing logged (excluded from the calorie average): 1');
+    expect(md).toContain('| 2026-08-04 | 63.8 | 0 | not logged |');
+  });
+
+  it('tells the ChatGPT prompt the 0 is an empty log, not a fast', () => {
+    const profile: Profile = {
+      sex: 'male',
+      age: 30,
+      heightCm: 175,
+      goal: 'Lean bulk',
+      targetWeightChangeKgPerWeek: 0.25,
+      trainingDaysPerWeek: 4,
+      cardio: false,
+      maintenanceCalories: null,
+      calorieTarget: null,
+      notes: '',
+    };
+    expect(buildChatGptPrompt(zeroDays, profile)).toContain('not a fast');
+    expect(buildChatGptPrompt(entries, profile)).not.toContain('marked "not logged"');
+  });
+});
+
 describe('ChatGPT prompt export', () => {
   it('includes profile values from the database and the data table', () => {
     const profile: Profile = {

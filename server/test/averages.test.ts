@@ -100,6 +100,45 @@ describe('days with an incomplete food log', () => {
   });
 });
 
+describe('days that total 0 kcal', () => {
+  const entries = [
+    entry('2026-08-01', { weightKg: 63.4, calories: 2000, proteinG: 150 }),
+    // Weighed in, ticked the training box, never opened the food log.
+    entry('2026-08-02', { weightKg: 63.6, calories: 0, proteinG: 0, trained: true }),
+    entry('2026-08-03', { weightKg: 63.8, calories: 2200, proteinG: 160 }),
+  ];
+
+  it('leaves the 0 kcal day out of the calorie average', () => {
+    const stat = rangeStat(entries, 'calories', '2026-08-01', '2026-08-03');
+    expect(stat.count).toBe(2);
+    expect(stat.avg).toBeCloseTo(2100, 10); // NOT (2000 + 0 + 2200) / 3 = 1400
+  });
+
+  it('leaves it out of macro averages too — a 0 kcal day has no macros either', () => {
+    const stat = rangeStat(entries, 'proteinG', '2026-08-01', '2026-08-03');
+    expect(stat.count).toBe(2);
+    expect(stat.avg).toBeCloseTo(155, 10);
+  });
+
+  it('still counts the weigh-in', () => {
+    const stat = rangeStat(entries, 'weightKg', '2026-08-01', '2026-08-03');
+    expect(stat.count).toBe(3);
+    expect(stat.avg).toBeCloseTo(63.6, 10);
+  });
+
+  it('keeps a 0 in one macro on a day that did eat — that one is a measurement', () => {
+    const noFiber = entry('2026-08-04', { calories: 2100, fiberG: 0 });
+    expect(countsToward(noFiber, 'fiberG')).toBe(true);
+  });
+
+  it('reports per-field whether the day may be averaged', () => {
+    const zero = entries[1];
+    expect(countsToward(zero, 'calories')).toBe(false);
+    expect(countsToward(zero, 'proteinG')).toBe(false);
+    expect(countsToward(zero, 'weightKg')).toBe(true);
+  });
+});
+
 describe('missing values', () => {
   it('excludes days without calories instead of treating them as zero', () => {
     const entries = [

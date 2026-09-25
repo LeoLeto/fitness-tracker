@@ -48,11 +48,17 @@ export function buildChartData(allEntries: DailyEntry[], from: string, to: strin
     const point: ChartPoint = { date };
     if (entry?.weightKg != null) point.weight = entry.weightKg;
     // A day whose food log was marked incomplete has real but partial
-    // calories, and a day inside a tracking pause has whatever happened to get
-    // logged on holiday: plotting either would draw a dip that never happened,
-    // so the bar is left off the chart the same way an unlogged day is. The
-    // weigh-in above still plots — only the food is partial.
-    if (entry?.calories != null && entry.caloriesIncomplete !== true && entry.paused !== true) {
+    // calories, a day inside a tracking pause has whatever happened to get
+    // logged on holiday, and a day totalling 0 kcal was never logged at all —
+    // plotting any of them would draw a dip that never happened, so the bar is
+    // left off the chart the same way an unlogged day is. The weigh-in above
+    // still plots — only the food is partial.
+    if (
+      entry?.calories != null &&
+      entry.calories !== 0 &&
+      entry.caloriesIncomplete !== true &&
+      entry.paused !== true
+    ) {
       point.calories = entry.calories;
     }
     const ma7 = trailingWeightAverage(allEntries, date, 7);
