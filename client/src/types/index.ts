@@ -232,6 +232,7 @@ export interface WeeklySummary {
   trainingDays: number;
   sessionsByRoutine: Record<string, number>;
   cardioMin: number;
+  cardioKm: number;
   notes: { date: string; text: string }[];
 }
 
@@ -287,7 +288,9 @@ export interface Workout {
   type: 'strength' | 'cardio';
   routine: string | null;
   cardioType: string | null;
+  /** Fractional minutes for cardio (32.25 = 32:15). */
   durationMin: number | null;
+  distanceKm: number | null;
   notes: string | null;
   dateInferred: boolean;
   exercises: WorkoutExercise[];

@@ -53,6 +53,7 @@ function workout(date: string, routine: string, exercises: { name: string; sets:
     routine,
     cardioType: null,
     durationMin: null,
+    distanceKm: null,
     notes: null,
     dateInferred: false,
     exercises: exercises.map((ex, i) => ({

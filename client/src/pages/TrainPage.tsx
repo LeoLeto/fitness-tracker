@@ -21,11 +21,18 @@ import { LastPerformance, Workout } from '../types';
 import { addDays, formatMedium, todayStr } from '../utils/dates';
 import { parseDecimal } from '../utils/numeric';
 import { perfKey } from '../utils/variants';
-import { ROUTINE_ORDER, routineLabel, workoutSummary } from '../utils/workouts';
+import {
+  fmtDuration,
+  paceMinPerKm,
+  ROUTINE_ORDER,
+  routineLabel,
+  workoutSummary,
+} from '../utils/workouts';
 import pageStyles from '../styles/page.module.scss';
 import styles from '../components/train/train.module.scss';
 
 const LAST_ROUTINE_KEY = 'fitness-tracker-last-routine';
+const DEFAULT_CARDIO_TYPE = 'treadmill';
 
 /**
  * Long enough that a burst of taps (weight, reps, RIR) is one request, short
@@ -194,6 +201,7 @@ export function TrainPage() {
         routine,
         cardioType: null,
         durationMin: previous?.durationMin ?? null,
+        distanceKm: null,
         notes: previous?.notes ?? null,
         dateInferred: false,
         exercises,
@@ -311,8 +319,12 @@ export function TrainPage() {
   };
 
   // ── Cardio state ─────────────────────────────────────────────────────────
-  const [cardioType, setCardioType] = useState('');
-  const [cardioDuration, setCardioDuration] = useState('');
+  const [cardioType, setCardioType] = useState(DEFAULT_CARDIO_TYPE);
+  // Minutes and seconds apart: it's what the treadmill shows, and a phone's
+  // numeric keypad has no colon to type "32:15" with.
+  const [cardioMin, setCardioMin] = useState('');
+  const [cardioSec, setCardioSec] = useState('');
+  const [cardioDistance, setCardioDistance] = useState('');
   const [cardioNotes, setCardioNotes] = useState('');
   const [savingCardio, setSavingCardio] = useState(false);
 
@@ -320,10 +332,26 @@ export function TrainPage() {
     (w) => w.type === 'cardio' && w.date === date
   );
 
+  const minutes = parseDecimal(cardioMin);
+  const seconds = parseDecimal(cardioSec);
+  const distance = parseDecimal(cardioDistance);
+  const duration =
+    minutes === undefined || seconds === undefined || (minutes == null && seconds == null)
+      ? null
+      : (minutes ?? 0) + (seconds ?? 0) / 60;
+  const livePace = paceMinPerKm(duration, distance ?? null);
+
   const saveCardio = async () => {
-    const duration = parseDecimal(cardioDuration);
     if (duration == null || duration <= 0) {
-      setError('Enter the cardio duration in minutes.');
+      setError('Enter the time (minutes and/or seconds).');
+      return;
+    }
+    if (seconds != null && seconds >= 60) {
+      setError('Seconds must be under 60.');
+      return;
+    }
+    if (distance === undefined || (distance != null && distance <= 0)) {
+      setError('Distance must be a number of km, or left empty.');
       return;
     }
     setError(null);
@@ -334,14 +362,19 @@ export function TrainPage() {
         type: 'cardio',
         routine: null,
         cardioType: cardioType.trim() === '' ? 'cardio' : cardioType.trim(),
-        durationMin: Math.round(duration),
+        // Four decimals is under a hundredth of a second — enough that the
+        // seconds typed come back exactly.
+        durationMin: Math.round(duration * 10000) / 10000,
+        distanceKm: distance,
         notes: cardioNotes.trim() === '' ? null : cardioNotes.trim(),
         dateInferred: false,
         exercises: [],
       });
-      show(`Cardio saved for ${formatMedium(date)} ✓`);
-      setCardioType('');
-      setCardioDuration('');
+      show(`Run saved for ${formatMedium(date)} ✓`);
+      setCardioType(DEFAULT_CARDIO_TYPE);
+      setCardioMin('');
+      setCardioSec('');
+      setCardioDistance('');
       setCardioNotes('');
       recent.reload();
     } catch (err) {
@@ -385,7 +418,7 @@ export function TrainPage() {
             className={isCardio ? `${styles.routineChip} ${styles.routineChipOn}` : styles.routineChip}
             onClick={() => setParams({ routine: 'cardio' })}
           >
-            Cardio
+            Run
           </button>
         </div>
         {/* Autosave is silent when it works; the one thing worth showing is
@@ -469,28 +502,53 @@ export function TrainPage() {
 
       {isCardio && (
         <section className={`card ${styles.cardioCard}`}>
-          <h2>Cardio session</h2>
+          <h2>Run</h2>
+          <label className={styles.cardioField}>
+            <span>Type</span>
+            <input
+              type="text"
+              value={cardioType}
+              placeholder="treadmill, outdoor run, bike…"
+              onChange={(e) => setCardioType(e.target.value)}
+            />
+          </label>
           <div className={styles.cardioRow}>
+            <div className={styles.cardioField}>
+              <span>Time</span>
+              <div className={styles.cardioTime}>
+                <NumericInput
+                  decimal={false}
+                  value={cardioMin}
+                  placeholder="min"
+                  ariaLabel="Minutes"
+                  onChange={setCardioMin}
+                />
+                <span aria-hidden="true">:</span>
+                <NumericInput
+                  decimal={false}
+                  value={cardioSec}
+                  placeholder="sec"
+                  ariaLabel="Seconds"
+                  onChange={setCardioSec}
+                />
+              </div>
+            </div>
             <label className={styles.cardioField}>
-              <span>Type</span>
-              <input
-                type="text"
-                value={cardioType}
-                placeholder="treadmill, bike, run…"
-                onChange={(e) => setCardioType(e.target.value)}
-              />
-            </label>
-            <label className={styles.cardioField}>
-              <span>Duration (min)</span>
+              <span>Distance (km)</span>
               <NumericInput
-                decimal={false}
-                value={cardioDuration}
-                placeholder="30"
-                ariaLabel="Cardio duration in minutes"
-                onChange={setCardioDuration}
+                value={cardioDistance}
+                placeholder="5.0"
+                ariaLabel="Distance in kilometres"
+                onChange={setCardioDistance}
               />
             </label>
           </div>
+          {livePace != null && duration != null && (
+            <p className={styles.cardioPace} aria-live="polite">
+              Pace <strong>{fmtDuration(livePace)}/km</strong> ·{' '}
+              {((distance as number) / (duration / 60)).toFixed(1)} km/h
+            </p>
+          )}
           <label className={styles.cardioField}>
             <span>Notes</span>
             <input
@@ -506,7 +564,7 @@ export function TrainPage() {
             disabled={savingCardio}
             onClick={() => void saveCardio()}
           >
-            Save cardio
+            Save run
           </button>
 
           {cardioForDay.length > 0 && (
@@ -519,7 +577,7 @@ export function TrainPage() {
                     className={styles.smallBtn}
                     onClick={() =>
                       void api.deleteWorkout(w.id).then(() => {
-                        show('Cardio deleted');
+                        show('Run deleted');
                         recent.reload();
                       })
                     }
@@ -548,7 +606,7 @@ export function TrainPage() {
             >
               <span className={styles.recentDate}>{formatMedium(w.date)}</span>
               <span className={styles.recentRoutine}>
-                {w.type === 'cardio' ? 'Cardio' : routineLabel(w.routine ?? '')}
+                {w.type === 'cardio' ? 'Run' : routineLabel(w.routine ?? '')}
                 {w.dateInferred ? ' ≈' : ''}
               </span>
               <span className={styles.recentSummary}>{workoutSummary(w)}</span>

@@ -2,6 +2,7 @@ import { DailyEntry, Profile } from '../types';
 import { average, countsToward } from '../analytics/averages';
 import { weightTrend } from '../analytics/trend';
 import { toCsv } from '../utils/csv';
+import { cardioSummary } from '../workouts/cardio';
 import { formatSets } from '../workouts/notation';
 import { Workout } from '../workouts/types';
 
@@ -258,6 +259,7 @@ const WORKOUT_CSV_HEADER = [
   'routine',
   'cardio_type',
   'duration_min',
+  'distance_km',
   'exercise',
   'exercise_order',
   'order_moved',
@@ -287,6 +289,7 @@ export function buildWorkoutsCsv(workouts: Workout[]): string {
       w.routine ?? '',
       w.cardioType ?? '',
       w.durationMin != null ? String(w.durationMin) : '',
+      w.distanceKm != null ? String(w.distanceKm) : '',
     ];
     if (w.type === 'cardio' || w.exercises.length === 0) {
       // Everything from `exercise` to `set_note` is blank for a session with no
@@ -354,8 +357,7 @@ export function buildWorkoutsMarkdown(workouts: Workout[]): string {
   for (const w of sorted) {
     if (w.type === 'cardio') {
       cardioCount++;
-      const duration = w.durationMin != null ? `${w.durationMin} min` : 'duration n/a';
-      lines.push(`**${w.date} — Cardio**: ${w.cardioType ?? 'cardio'}, ${duration}`);
+      lines.push(`**${w.date} — Cardio**: ${cardioSummary(w)}`);
       continue;
     }
     const routine = w.routine ?? 'other';

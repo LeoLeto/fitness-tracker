@@ -60,4 +60,17 @@ describe('buildRecommendation', () => {
     expect(rec.status).toBe('above');
     expect(rec.message).toContain('reducing intake by ~100–150 kcal/day');
   });
+
+  it('speaks in terms of loss when the target is a deficit', () => {
+    const tooFast = buildRecommendation(enough, -0.8, -0.5);
+    expect(tooFast.status).toBe('below');
+    expect(tooFast.message).toContain('Losing faster than target');
+    expect(tooFast.message).toContain('increasing intake');
+
+    expect(buildRecommendation(enough, -0.5, -0.5).message).toContain('rate of loss');
+
+    const tooSlow = buildRecommendation(enough, -0.2, -0.5);
+    expect(tooSlow.status).toBe('above');
+    expect(tooSlow.message).toContain('Losing slower than target');
+  });
 });

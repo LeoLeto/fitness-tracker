@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildWeeklySummaries } from '../src/analytics/weekly';
 import { DailyEntry } from '../src/types';
+import { Workout } from '../src/workouts/types';
 
 function entry(date: string, fields: Partial<DailyEntry>): DailyEntry {
   return {
@@ -78,5 +79,26 @@ describe('buildWeeklySummaries', () => {
       entry('2026-08-05', { weightKg: 63.9 }),
     ]);
     expect(weeks[0].trendKgPerWeek).toBeNull();
+  });
+
+  it('totals cardio time and distance for the week', () => {
+    const run = (date: string, durationMin: number, distanceKm: number | null): Workout => ({
+      id: date,
+      date,
+      type: 'cardio',
+      routine: null,
+      cardioType: 'treadmill',
+      durationMin,
+      distanceKm,
+      notes: null,
+      dateInferred: false,
+      exercises: [],
+    });
+    const [week] = buildWeeklySummaries(
+      [entry('2026-08-03', { weightKg: 63.7 })],
+      [run('2026-08-03', 32.25, 5), run('2026-08-05', 28.4, 4.6), run('2026-08-06', 20, null)]
+    );
+    expect(week.cardioMin).toBe(81);
+    expect(week.cardioKm).toBe(9.6);
   });
 });

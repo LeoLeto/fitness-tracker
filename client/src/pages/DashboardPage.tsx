@@ -51,7 +51,13 @@ export function DashboardPage() {
   const weekBreakdown = thisWeek
     ? [
         ...Object.entries(thisWeek.sessionsByRoutine).map(([r, n]) => `${r} ${n}`),
-        ...(thisWeek.cardioMin > 0 ? [`cardio ${thisWeek.cardioMin} min`] : []),
+        ...(thisWeek.cardioMin > 0
+          ? [
+              thisWeek.cardioKm > 0
+                ? `run ${thisWeek.cardioKm.toFixed(1)} km / ${thisWeek.cardioMin} min`
+                : `run ${thisWeek.cardioMin} min`,
+            ]
+          : []),
       ].join(' · ')
     : '';
 

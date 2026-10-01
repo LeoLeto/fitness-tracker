@@ -89,16 +89,38 @@ export function formatSet(s: {
   return `${load} ×${s.reps}${s.rir != null ? ` (${s.rir} RIR)` : ''}`;
 }
 
-/** Short summary for history rows: "5 exercises · 15 sets" or "treadmill · 30 min". */
+/** 32.25 → "32:15"; 75.5 → "1:15:30". Mirrors server/src/workouts/cardio.ts. */
+export function fmtDuration(min: number): string {
+  const totalSec = Math.round(min * 60);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const ss = String(totalSec % 60).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+}
+
+/** Pace in minutes per km, or null when either side is missing or zero. */
+export function paceMinPerKm(durationMin: number | null, distanceKm: number | null): number | null {
+  if (durationMin == null || distanceKm == null || durationMin <= 0 || distanceKm <= 0) return null;
+  return durationMin / distanceKm;
+}
+
+/**
+ * Short summary for history rows: "5 exercises · 15 sets" or
+ * "treadmill · 32:15 · 5.00 km · 6:27/km".
+ */
 export function workoutSummary(w: {
   type: string;
   cardioType: string | null;
   durationMin: number | null;
+  distanceKm: number | null;
   exercises: { sets: unknown[] }[];
 }): string {
   if (w.type === 'cardio') {
     const parts = [w.cardioType ?? 'cardio'];
-    if (w.durationMin != null) parts.push(`${w.durationMin} min`);
+    if (w.durationMin != null) parts.push(fmtDuration(w.durationMin));
+    if (w.distanceKm != null) parts.push(`${w.distanceKm.toFixed(2)} km`);
+    const pace = paceMinPerKm(w.durationMin, w.distanceKm);
+    if (pace != null) parts.push(`${fmtDuration(pace)}/km`);
     return parts.join(' · ');
   }
   const sets = w.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);

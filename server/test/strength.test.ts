@@ -37,6 +37,7 @@ function workout(
     routine: type === 'strength' ? routine : null,
     cardioType: type === 'cardio' ? routine : null,
     durationMin,
+    distanceKm: null,
     notes: null,
     dateInferred: false,
     exercises: exercises.map((ex, i) => ({

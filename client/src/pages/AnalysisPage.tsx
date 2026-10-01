@@ -145,7 +145,10 @@ export function AnalysisPage() {
               </div>
               {m.sufficient && (
                 <div>
-                  <dt>Implied daily surplus</dt>
+                  <dt>
+                    Implied daily{' '}
+                    {m.dailySurplusKcal != null && m.dailySurplusKcal < 0 ? 'deficit' : 'surplus'}
+                  </dt>
                   <dd>
                     {m.dailySurplusKcal != null && m.dailySurplusKcal >= 0 ? '+' : ''}
                     {m.dailySurplusKcal} kcal
@@ -160,9 +163,11 @@ export function AnalysisPage() {
             <p className={styles.recommendation}>{a.recommendation.message}</p>
             {m.sufficient && m.suggestedIntakeKcal != null && (
               <p className={styles.suggested}>
-                Target gain {fmtTrend(a.target.kgPerWeek, 2)} → suggested intake{' '}
+                Target {a.target.kgPerWeek < 0 ? 'loss' : 'gain'} {fmtTrend(a.target.kgPerWeek, 2)} →
+                suggested intake{' '}
                 <strong>~{Math.round(m.suggestedIntakeKcal).toLocaleString('en-US')} kcal/day</strong>{' '}
-                (maintenance {m.targetSurplusKcal != null ? `+ ${m.targetSurplusKcal}` : ''} kcal).
+                {m.targetSurplusKcal != null &&
+                  `(maintenance ${m.targetSurplusKcal < 0 ? '−' : '+'} ${Math.abs(m.targetSurplusKcal)} kcal).`}
               </p>
             )}
           </section>

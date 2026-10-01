@@ -222,6 +222,7 @@ describe('workout CSV export', () => {
       routine: 'pull',
       cardioType: null,
       durationMin: null,
+      distanceKm: null,
       notes: 'good session',
       dateInferred: false,
       exercises: [
@@ -254,7 +255,8 @@ describe('workout CSV export', () => {
       type: 'cardio',
       routine: null,
       cardioType: 'treadmill',
-      durationMin: 30,
+      durationMin: 32.25,
+      distanceKm: 5,
       notes: 'easy pace',
       dateInferred: false,
       exercises: [],
@@ -285,7 +287,8 @@ describe('workout CSV export', () => {
     // last set column before them.
     expect(row(lines[2])).toMatchObject({
       cardio_type: 'treadmill',
-      duration_min: '30',
+      duration_min: '32.25',
+      distance_km: '5',
       exercise: '',
       set_note: '',
       workout_notes: 'easy pace',
@@ -295,5 +298,10 @@ describe('workout CSV export', () => {
   it('names the variant alongside the exercise in the Markdown log', () => {
     const md = buildWorkoutsMarkdown(workouts);
     expect(md).toContain('- Low row machine [Chest supported]');
+  });
+
+  it('writes runs as treadmill time, distance and pace', () => {
+    const md = buildWorkoutsMarkdown(workouts);
+    expect(md).toContain('**2026-08-24 — Cardio**: treadmill · 32:15 · 5.00 km · 6:27/km');
   });
 });

@@ -293,5 +293,7 @@ export interface WeeklySummary {
   /** Strength sessions per routine that week (from the workout log). */
   sessionsByRoutine: Record<string, number>;
   cardioMin: number;
+  /** Total cardio distance logged that week (km); 0 when none had a distance. */
+  cardioKm: number;
   notes: { date: string; text: string }[];
 }

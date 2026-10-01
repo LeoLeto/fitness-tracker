@@ -567,6 +567,32 @@
   }
 }
 
+.cardioTime {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  > span {
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+}
+
+.cardioPace {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+
+  strong {
+    color: var(--text);
+  }
+}
+
 .cardioList {
   list-style: none;
   margin: 0;

@@ -160,7 +160,7 @@ export function weeklyTraining(workouts: Workout[]): WeeklyTrainingBar[] {
     }
     if (w.type === 'cardio') {
       bar.cardioSessions += 1;
-      bar.cardioMin += w.durationMin ?? 0;
+      bar.cardioMin = Math.round((bar.cardioMin + (w.durationMin ?? 0)) * 100) / 100;
     } else {
       const routine = w.routine ?? 'other';
       bar.sessions[routine] = (bar.sessions[routine] ?? 0) + 1;

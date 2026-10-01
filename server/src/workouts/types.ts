@@ -85,7 +85,10 @@ export interface Workout {
   routine: Routine | null;
   /** Modality for cardio sessions, e.g. "treadmill", "bike". */
   cardioType: string | null;
+  /** Minutes; fractional for cardio, so a 32:15 treadmill time keeps its seconds. */
   durationMin: number | null;
+  /** Cardio distance (km), e.g. what the treadmill shows at the end of a run. */
+  distanceKm: number | null;
   notes: string | null;
   /** True for history imported from notes where only month+weekday were known. */
   dateInferred: boolean;

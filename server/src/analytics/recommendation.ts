@@ -69,10 +69,20 @@ export function classifyTrend(
   return 'on-target';
 }
 
-const MESSAGES: Record<TrendStatus, string> = {
+// The arithmetic is the same either way (below target → eat more), but "below
+// target" on a cut means losing too fast, and that's how it should read.
+const GAIN_MESSAGES: Record<TrendStatus, string> = {
   below: 'Weight is trending below target. Consider increasing intake by ~100–150 kcal/day.',
   'on-target': 'Current rate of gain looks appropriate. Keep intake unchanged.',
   above: 'Weight is trending above target. Consider reducing intake by ~100–150 kcal/day.',
+};
+
+const LOSS_MESSAGES: Record<TrendStatus, string> = {
+  below:
+    'Losing faster than target, which puts muscle and training quality at risk. ' +
+    'Consider increasing intake by ~100–150 kcal/day.',
+  'on-target': 'Current rate of loss looks appropriate. Keep intake unchanged.',
+  above: 'Losing slower than target. Consider reducing intake by ~100–150 kcal/day.',
 };
 
 export function buildRecommendation(
@@ -96,5 +106,6 @@ export function buildRecommendation(
     };
   }
   const status = classifyTrend(trendKgPerWeek, targetKgPerWeek);
-  return { sufficient: true, status, message: MESSAGES[status] };
+  const messages = targetKgPerWeek < 0 ? LOSS_MESSAGES : GAIN_MESSAGES;
+  return { sufficient: true, status, message: messages[status] };
 }

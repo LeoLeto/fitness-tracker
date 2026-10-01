@@ -177,7 +177,7 @@ export function TimelineCharts({ data }: TimelineChartsProps) {
       ])
     ),
     cardio: {
-      label: 'Cardio',
+      label: 'Run',
       format: (v: number) => `${v} session${v === 1 ? '' : 's'}`,
       color: routineColor('cardio'),
     },
@@ -321,7 +321,7 @@ export function TimelineCharts({ data }: TimelineChartsProps) {
               color: routineColor(r),
               shape: 'bar' as const,
             })),
-            { label: 'Cardio', color: routineColor('cardio'), shape: 'bar' as const },
+            { label: 'Run', color: routineColor('cardio'), shape: 'bar' as const },
           ]}
         />
         <ResponsiveContainer width="100%" height={160}>

@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   beatsPerformance,
   bestPerformance,
+  fmtDuration,
   formatPerformance,
   formatSet,
+  paceMinPerKm,
+  workoutSummary,
 } from '../src/utils/workouts';
 import { WorkoutSet } from '../src/types';
 
@@ -77,5 +80,28 @@ describe('formatting', () => {
   it('writes a record set in the log notation', () => {
     expect(formatSet(set(94, 7, 1))).toBe('94 ×7 (1 RIR)');
     expect(formatSet(set(null, 12))).toBe('BW ×12');
+  });
+});
+
+describe('cardio summary', () => {
+  const run = (durationMin: number | null, distanceKm: number | null) => ({
+    type: 'cardio',
+    cardioType: 'treadmill',
+    durationMin,
+    distanceKm,
+    exercises: [],
+  });
+
+  it('shows treadmill time, distance and pace', () => {
+    expect(workoutSummary(run(32.25, 5))).toBe('treadmill · 32:15 · 5.00 km · 6:27/km');
+  });
+
+  it('leaves out the pace when there is no distance', () => {
+    expect(workoutSummary(run(30, null))).toBe('treadmill · 30:00');
+  });
+
+  it('formats long sessions with hours', () => {
+    expect(fmtDuration(75.5)).toBe('1:15:30');
+    expect(paceMinPerKm(30, 0)).toBeNull();
   });
 });

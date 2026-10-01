@@ -67,9 +67,11 @@ export function buildWeeklySummaries(
 
     const sessionsByRoutine: Record<string, number> = {};
     let cardioMin = 0;
+    let cardioKm = 0;
     for (const w of weekWorkouts) {
       if (w.type === 'cardio') {
         cardioMin += w.durationMin ?? 0;
+        cardioKm += w.distanceKm ?? 0;
       } else {
         const routine = w.routine ?? 'other';
         sessionsByRoutine[routine] = (sessionsByRoutine[routine] ?? 0) + 1;
@@ -90,7 +92,10 @@ export function buildWeeklySummaries(
         avgWeight != null && prevAvgWeight != null ? avgWeight - prevAvgWeight : null,
       trainingDays: trainingDates.size,
       sessionsByRoutine,
-      cardioMin,
+      // Fractional minutes add up to float noise (32.25 + 28.4…); a week's
+      // total only ever needs whole minutes and 10 m precision.
+      cardioMin: Math.round(cardioMin),
+      cardioKm: Math.round(cardioKm * 100) / 100,
       notes: weekEntries
         .filter((e) => e.notes != null && e.notes !== '')
         .map((e) => ({ date: e.date, text: e.notes as string })),

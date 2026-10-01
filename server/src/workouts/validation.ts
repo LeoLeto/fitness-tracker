@@ -63,11 +63,13 @@ export function validateWorkout(body: unknown): ValidationResult<Omit<Workout, '
 
   const routine = str(b.routine, 40);
   const cardioType = str(b.cardioType, 60);
-  const durationMin = num(b.durationMin, 0, 1440, true);
+  const durationMin = num(b.durationMin, 0, 1440);
+  const distanceKm = num(b.distanceKm, 0, 500);
   const notes = str(b.notes, 2000);
   if (routine === 'invalid') errors.push('routine is invalid');
   if (cardioType === 'invalid') errors.push('cardioType is invalid');
   if (durationMin === 'invalid') errors.push('durationMin is invalid');
+  if (distanceKm === 'invalid') errors.push('distanceKm is invalid');
   if (notes === 'invalid') errors.push('notes is too long');
   if (type === 'strength' && (routine === null || routine === 'invalid')) {
     errors.push('strength workouts need a routine');
@@ -115,6 +117,7 @@ export function validateWorkout(body: unknown): ValidationResult<Omit<Workout, '
       routine: (routine as string | null)?.toLowerCase() ?? null,
       cardioType: cardioType as string | null,
       durationMin: durationMin as number | null,
+      distanceKm: distanceKm as number | null,
       notes: notes as string | null,
       dateInferred: bool(b.dateInferred),
       exercises,

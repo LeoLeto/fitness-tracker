@@ -38,6 +38,7 @@ const workoutSchema = new Schema<WorkoutDoc>(
     routine: { type: String, default: null, lowercase: true, trim: true },
     cardioType: { type: String, default: null },
     durationMin: { type: Number, default: null },
+    distanceKm: { type: Number, default: null },
     notes: { type: String, default: null },
     dateInferred: { type: Boolean, default: false },
     exercises: { type: [workoutExerciseSchema], default: [] },
@@ -64,6 +65,7 @@ export function serializeWorkout(doc: Record<string, unknown>): Workout {
     routine: (doc.routine ?? null) as string | null,
     cardioType: (doc.cardioType ?? null) as string | null,
     durationMin: (doc.durationMin ?? null) as number | null,
+    distanceKm: (doc.distanceKm ?? null) as number | null,
     notes: (doc.notes ?? null) as string | null,
     dateInferred: (doc.dateInferred ?? false) as boolean,
     exercises: exercises.map((ex) => ({

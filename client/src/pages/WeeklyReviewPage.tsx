@@ -84,8 +84,11 @@ export function WeeklyReviewPage() {
             </div>
             {week.cardioMin > 0 && (
               <div>
-                <dt>Cardio</dt>
-                <dd>{week.cardioMin} min</dd>
+                <dt>Run</dt>
+                <dd>
+                  {week.cardioMin} min
+                  {week.cardioKm > 0 ? ` · ${week.cardioKm.toFixed(1)} km` : ''}
+                </dd>
               </div>
             )}
           </dl>

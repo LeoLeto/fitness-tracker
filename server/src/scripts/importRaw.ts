@@ -198,6 +198,7 @@ async function importWorkoutFile(filePath: string, year: number): Promise<void> 
           type: 'strength',
           routine,
           cardioType: null,
+          distanceKm: null,
           durationMin: null,
           notes: null,
           dateInferred: true,
