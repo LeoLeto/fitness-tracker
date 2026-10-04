@@ -115,6 +115,21 @@ const WEIGHED: SeedFood[] = [
     portions: [],
     notes: '1 tsp ≈ 5 g',
   },
+  {
+    // Typical figures for a Brazilian colonial cheese (semi-hard, full-fat);
+    // brands vary, so swap in the label's numbers if they differ.
+    name: 'Queijo colonial',
+    unit: 'g',
+    category: 'dairy',
+    basisQty: 100,
+    calories: 370,
+    proteinG: 23,
+    carbsG: 1.5,
+    fatG: 30,
+    fiberG: 0,
+    portions: [],
+    notes: '1 slice ≈ 20–30 g',
+  },
 
   // ── Grains, flours & sugar ────────────────────────────────────────────────
   // Dry weight, before any water goes in: the flour or the oats are what you
@@ -175,6 +190,19 @@ const WEIGHED: SeedFood[] = [
     fiberG: 0,
     portions: [],
     notes: '1 tsp ≈ 4 g',
+  },
+  {
+    name: 'Honey',
+    unit: 'g',
+    category: 'pantry',
+    basisQty: 100,
+    calories: 304,
+    proteinG: 0.3,
+    carbsG: 82,
+    fatG: 0,
+    fiberG: 0.2,
+    portions: [],
+    notes: '1 tsp ≈ 7 g, 1 tbsp ≈ 21 g',
   },
   {
     // The pack's own figures, for the whole 40 g packet — which is also the
