@@ -166,7 +166,7 @@ const WEIGHED: SeedFood[] = [
     notes: 'Wheat flour, dry weight',
   },
   {
-    name: 'Oats',
+    name: 'Oats (flakes)',
     unit: 'g',
     category: 'pantry',
     basisQty: 100,
@@ -317,6 +317,9 @@ const FOODS: SeedFood[] = [
   {
     name: 'Skimmed milk',
     unit: 'ml',
+    // Dairy, so it also lists on the Weigh tab for a pour that isn't one of
+    // the usual portions.
+    category: 'dairy',
     basisQty: 100,
     calories: 31,
     proteinG: 3.2,
